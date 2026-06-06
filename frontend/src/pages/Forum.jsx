@@ -96,27 +96,51 @@ function ForumList() {
 
   const reload = () => setReloadKey(k => k + 1);
 
+  // Aggregate stats for hero
+  const totalThreads = threads.length;
+  const totalReplies = threads.reduce((acc, t) => acc + (t.reply_count || 0), 0);
+  const totalLikes = threads.reduce((acc, t) => acc + (t.likes || 0), 0);
+
   return (
     <AppShell>
-      <div className="p-8 max-w-6xl" data-testid="forum-page">
-        <div className="flex items-start justify-between mb-2 gap-4 flex-wrap">
-          <div>
-            <h1 className="text-4xl font-bold flex items-center gap-3"><MessageSquare className="w-9 h-9" /> Forum comunitate</h1>
-            <p className="text-sm text-gray-600 mt-2 max-w-2xl">Discuții libere între proiectanți, executanți, verificatori. Filtrează pe industria ta sau navighează prin discuțiile generale.</p>
+      <div className="p-8 max-w-7xl" data-testid="forum-page">
+        {/* Premium hero */}
+        <div className="relative overflow-hidden mb-8 bg-gradient-to-br from-[#0A0A0A] via-[#171717] to-[#0A0A0A] text-white">
+          <div className="absolute -right-24 -top-24 w-96 h-96 bg-[#FFB300]/15 blur-[120px] rounded-full pointer-events-none" />
+          <div className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#FFB300 1px, transparent 1px)', backgroundSize: '16px 16px' }} />
+          <div className="relative p-8 lg:p-10 flex items-start justify-between gap-6 flex-wrap">
+            <div className="flex-1 min-w-[280px]">
+              <div className="inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-[#FFB300] mb-3">
+                <MessageSquare className="w-3.5 h-3.5" /> // forum comunitate
+              </div>
+              <h1 className="text-4xl lg:text-5xl font-bold leading-tight tracking-tight mb-3">
+                Inginerie, <span className="text-[#FFB300]">la persoana întâi.</span>
+              </h1>
+              <p className="text-sm lg:text-base text-gray-300 leading-relaxed max-w-2xl">
+                Discuții deschise între <strong className="text-white">proiectanți</strong>, <strong className="text-white">executanți</strong>, <strong className="text-white">verificatori VGD/RTE</strong> și autorizate ANRE. Filtrează pe industria ta sau navighează tematic.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 items-end">
+              <button
+                onClick={() => {
+                  if (!user) { toast.error('Loghează-te ca să postezi.'); return; }
+                  setShowCompose(true);
+                }}
+                className="bg-[#FFB300] text-black px-5 py-3 flex items-center gap-2 hover:bg-white border-2 border-[#FFB300] font-bold text-sm uppercase tracking-wider transition-colors"
+                data-testid="new-thread-btn"
+              >
+                <Plus className="w-4 h-4" /> Discuție nouă
+              </button>
+              <div className="flex gap-2">
+                <span className="bg-white/5 backdrop-blur-md border border-white/10 px-3 py-1.5 text-xs"><strong className="text-[#FFB300]">{totalThreads}</strong> <span className="text-gray-400 uppercase tracking-wider text-[10px]">discuții</span></span>
+                <span className="bg-white/5 backdrop-blur-md border border-white/10 px-3 py-1.5 text-xs"><strong className="text-emerald-400">{totalReplies}</strong> <span className="text-gray-400 uppercase tracking-wider text-[10px]">răspunsuri</span></span>
+                <span className="bg-white/5 backdrop-blur-md border border-white/10 px-3 py-1.5 text-xs"><strong className="text-rose-400">{totalLikes}</strong> <span className="text-gray-400 uppercase tracking-wider text-[10px]">like-uri</span></span>
+              </div>
+            </div>
           </div>
-          <button
-            onClick={() => {
-              if (!user) { toast.error('Loghează-te ca să postezi.'); return; }
-              setShowCompose(true);
-            }}
-            className="bg-black text-[#FFB300] px-5 py-2.5 flex items-center gap-2 hover:bg-[#FFB300] hover:text-black border-2 border-black font-semibold text-sm"
-            data-testid="new-thread-btn"
-          >
-            <Plus className="w-4 h-4" /> Discuție nouă
-          </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Sidebar — industries */}
           <aside className="lg:col-span-1 space-y-1" data-testid="industry-sidebar">
             <div className="text-xs uppercase tracking-wider text-gray-500 px-3 py-2 flex items-center gap-2"><Filter className="w-3.5 h-3.5" /> Industrie</div>
@@ -167,7 +191,7 @@ function ForumList() {
                   <Link
                     key={t.thread_id}
                     to={`/forum/${t.thread_id}`}
-                    className="block bg-white border-2 border-gray-200 hover:border-black transition-colors p-5"
+                    className="group block bg-white border border-gray-200 hover:border-black hover:shadow-[0_8px_24px_rgba(0,0,0,0.06)] transition-all duration-200 p-5"
                     data-testid={`thread-${t.thread_id}`}
                   >
                     <div className="flex items-start justify-between gap-4">

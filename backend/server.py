@@ -26,6 +26,7 @@ from models import (
     CheckoutRequest, PaymentTransaction, new_id,
     ProjectIn, Project, TechnicalDataIn, PhotovoltaicDataIn,
     CertificationCreate, Certification, AIQuery,
+    AdminConfig, AdminConfigUpdate, AdminUserRoleUpdate,
 )
 from auth import (
     hash_password, verify_password, create_jwt,
@@ -74,7 +75,25 @@ def _user_from_doc(doc: dict) -> User:
     """Construct a User model, computing the gmail_configured boolean and stripping secrets."""
     d = {k: v for k, v in doc.items() if k not in ("_id", "password_hash", "gmail_app_password", "qes_credentials")}
     d["gmail_configured"] = bool(doc.get("gmail_user") and doc.get("gmail_app_password"))
+    # Developers are implicit admins
+    d["is_admin"] = bool(doc.get("is_admin") or doc.get("is_developer") or _is_developer_email(doc.get("email", "")))
     return User(**d)
+
+
+async def get_admin_user(user: User = Depends(get_current_user)) -> User:
+    """Dep that ensures the current user has admin/developer privileges."""
+    if not (user.is_admin or user.is_developer):
+        raise HTTPException(status_code=403, detail="Acces restricționat — necesită rol de administrator")
+    return user
+
+
+async def _get_admin_config() -> dict:
+    doc = await db.admin_config.find_one({"config_id": "global"}, {"_id": 0})
+    if not doc:
+        defaults = AdminConfig().model_dump()
+        await db.admin_config.insert_one({**defaults})
+        doc = defaults
+    return doc
 
 # ----------- Pricing plans — see plans.py for catalog -----------
 PLANS = {p["id"]: {"name": p["name"], "amount": float(p["price_eur"]), "currency": p["currency"], "documents_per_month": p["documents_per_month"]} for p in plans_module.PLANS.values() if not p.get("internal")}
@@ -214,9 +233,13 @@ async def logout(request: Request, response: Response):
 # ====================== USER SETTINGS ======================
 @api.patch("/users/me", response_model=User)
 async def update_me(payload: dict, user: User = Depends(get_current_user)):
-    """Update user profile / Gmail / QES settings."""
-    allowed = {"name", "company", "gmail_user", "gmail_app_password", "qes_provider"}
+    """Update user profile / Gmail / secondary email / QES settings."""
+    allowed = {"name", "company", "gmail_user", "gmail_app_password", "qes_provider", "secondary_email"}
     updates = {k: v for k, v in payload.items() if k in allowed}
+    # Normalize secondary_email (allow empty string to clear)
+    if "secondary_email" in updates:
+        se = (updates["secondary_email"] or "").strip().lower()
+        updates["secondary_email"] = se if se else None
     if not updates:
         raise HTTPException(status_code=400, detail="Nicio modificare validă")
     await db.users.update_one({"user_id": user.user_id}, {"$set": updates})
@@ -226,10 +249,136 @@ async def update_me(payload: dict, user: User = Depends(get_current_user)):
 
 @api.get("/users/me/email-config")
 async def email_config(user: User = Depends(get_current_user)):
-    """Return whether Gmail is configured (never expose the password)."""
-    doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "gmail_user": 1, "gmail_app_password": 1})
+    """Return whether Gmail is configured (never expose the password) + secondary email."""
+    doc = await db.users.find_one(
+        {"user_id": user.user_id},
+        {"_id": 0, "gmail_user": 1, "gmail_app_password": 1, "secondary_email": 1},
+    )
     configured = bool(doc and doc.get("gmail_user") and doc.get("gmail_app_password"))
-    return {"configured": configured, "gmail_user": doc.get("gmail_user") if doc else None}
+    return {
+        "configured": configured,
+        "gmail_user": doc.get("gmail_user") if doc else None,
+        "secondary_email": doc.get("secondary_email") if doc else None,
+    }
+
+
+# ====================== ADMIN-ONLY CONFIGURATION ======================
+@api.get("/admin/config")
+async def admin_get_config(admin: User = Depends(get_admin_user)):
+    """Return global platform configuration (admin only)."""
+    cfg = await _get_admin_config()
+    # Strip the platform SMTP password from the response (write-only)
+    safe = {k: v for k, v in cfg.items() if k not in ("smtp_global_password", "_id")}
+    safe["smtp_global_password_set"] = bool(cfg.get("smtp_global_password"))
+    return safe
+
+
+@api.put("/admin/config")
+async def admin_update_config(payload: AdminConfigUpdate, admin: User = Depends(get_admin_user)):
+    """Update global platform configuration (admin only)."""
+    updates = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(status_code=400, detail="Nicio modificare validă")
+    # Don't overwrite password with empty string accidentally
+    if updates.get("smtp_global_password") == "":
+        del updates["smtp_global_password"]
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+    updates["updated_by"] = admin.user_id
+    await db.admin_config.update_one(
+        {"config_id": "global"},
+        {"$set": updates, "$setOnInsert": {"config_id": "global"}},
+        upsert=True,
+    )
+    cfg = await _get_admin_config()
+    safe = {k: v for k, v in cfg.items() if k not in ("smtp_global_password", "_id")}
+    safe["smtp_global_password_set"] = bool(cfg.get("smtp_global_password"))
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": admin.user_id,
+        "action": "admin_config_update",
+        "details": {"keys": list(updates.keys())},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return safe
+
+
+@api.get("/admin/users")
+async def admin_list_users(admin: User = Depends(get_admin_user), search: Optional[str] = None, limit: int = 100):
+    """List all platform users (admin only)."""
+    q = {}
+    if search:
+        q = {"$or": [
+            {"email": {"$regex": search, "$options": "i"}},
+            {"name": {"$regex": search, "$options": "i"}},
+            {"company": {"$regex": search, "$options": "i"}},
+        ]}
+    cursor = db.users.find(q, {"_id": 0, "password_hash": 0, "gmail_app_password": 0, "qes_credentials": 0}).limit(limit)
+    users = []
+    async for u in cursor:
+        u["gmail_configured"] = bool(u.get("gmail_user"))
+        users.append(u)
+    return {"users": users, "count": len(users)}
+
+
+@api.patch("/admin/users/{user_id}")
+async def admin_update_user(user_id: str, payload: AdminUserRoleUpdate, admin: User = Depends(get_admin_user)):
+    """Update user role/ban/plan (admin only)."""
+    updates = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if not updates:
+        raise HTTPException(status_code=400, detail="Nicio modificare validă")
+    target = await db.users.find_one({"user_id": user_id}, {"_id": 0})
+    if not target:
+        raise HTTPException(status_code=404, detail="Utilizator inexistent")
+    await db.users.update_one({"user_id": user_id}, {"$set": updates})
+    await db.action_logs.insert_one({
+        "log_id": new_id("log_"), "user_id": admin.user_id,
+        "action": "admin_user_update",
+        "details": {"target_user_id": user_id, "updates": updates},
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    return {"ok": True, "user_id": user_id, "updates": updates}
+
+
+@api.get("/admin/stats")
+async def admin_stats(admin: User = Depends(get_admin_user)):
+    """Quick platform statistics (admin only)."""
+    users = await db.users.count_documents({})
+    projects = await db.projects.count_documents({})
+    documents = await db.documents.count_documents({})
+    emails = await db.email_logs.count_documents({})
+    threads = 0
+    try:
+        threads = await db.forum_threads.count_documents({})
+    except Exception:
+        pass
+    admins = await db.users.count_documents({"$or": [{"is_admin": True}, {"is_developer": True}]})
+    return {
+        "users_total": users,
+        "admins_total": admins,
+        "projects_total": projects,
+        "documents_total": documents,
+        "emails_sent": emails,
+        "forum_threads": threads,
+    }
+
+
+@api.get("/system/banner")
+async def public_banner():
+    """Public maintenance/announcement banner — read by any client."""
+    cfg = await _get_admin_config()
+    return {
+        "maintenance_mode": cfg.get("maintenance_mode", False),
+        "maintenance_message": cfg.get("maintenance_message") or "",
+        "announcement_banner": cfg.get("announcement_banner") or "",
+        "announcement_level": cfg.get("announcement_level") or "info",
+        "features": {
+            "forum": cfg.get("feature_forum_enabled", True),
+            "email": cfg.get("feature_email_enabled", True),
+            "pdf": cfg.get("feature_pdf_enabled", True),
+            "photovoltaic": cfg.get("feature_photovoltaic_enabled", True),
+            "ai_assistant": cfg.get("feature_ai_assistant_enabled", True),
+            "payments": cfg.get("feature_payments_enabled", True),
+        },
+    }
 
 
 # ====================== QES PROVIDERS ======================
@@ -503,10 +652,23 @@ async def email_document(req: EmailSendRequest, user: User = Depends(get_current
         sig_name = doc["name"].rsplit(".docx", 1)[0] + ".p7s"
         extras.append((sig_name, base64.b64decode(doc["signature_b64"]), "application/pkcs7-signature"))
 
-    # Fetch user's Gmail credentials
-    user_doc = await db.users.find_one({"user_id": user.user_id}, {"_id": 0, "gmail_user": 1, "gmail_app_password": 1})
+    # Fetch user's Gmail credentials + secondary email
+    user_doc = await db.users.find_one(
+        {"user_id": user.user_id},
+        {"_id": 0, "gmail_user": 1, "gmail_app_password": 1, "secondary_email": 1},
+    )
     gmail_user = (user_doc or {}).get("gmail_user", "") or ""
     gmail_pass = (user_doc or {}).get("gmail_app_password", "") or ""
+    secondary = (user_doc or {}).get("secondary_email") or ""
+
+    # Pull global admin config for SMTP fallback + cc_secondary default
+    admin_cfg = await _get_admin_config()
+    if not gmail_user and admin_cfg.get("smtp_global_user"):
+        gmail_user = admin_cfg["smtp_global_user"]
+        gmail_pass = admin_cfg.get("smtp_global_password") or ""
+    cc_list = []
+    if admin_cfg.get("smtp_cc_secondary_default", True) and secondary:
+        cc_list.append(secondary)
 
     result = send_email_with_attachment(
         gmail_user=gmail_user,
@@ -517,6 +679,8 @@ async def email_document(req: EmailSendRequest, user: User = Depends(get_current
         attachment_name=doc["name"],
         attachment_bytes=data,
         extra_attachments=extras,
+        cc=cc_list,
+        from_name_override=admin_cfg.get("smtp_from_name"),
     )
     await db.email_logs.insert_one({
         "log_id": new_id("log_"),
@@ -1282,6 +1446,36 @@ async def project_pdf(user: User = Depends(get_current_user)):
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",
         headers={"Content-Disposition": f'attachment; filename="raport_{safe_name}.pdf"'},
+    )
+
+
+# ====================== TECH OFFER FV PDF ======================
+@api.get("/photovoltaic/tech-offer-pdf")
+async def photovoltaic_tech_offer_pdf(user: User = Depends(get_current_user)):
+    """Generate a commercial-grade Photovoltaic Tech Offer PDF from the active project's FV calc."""
+    proj = await _get_or_create_default_project(user.user_id)
+    fv_results = proj.get("photovoltaic_results") or {}
+    fv_data = proj.get("photovoltaic_data") or {}
+    if not fv_results or fv_results.get("status") != "ok":
+        raise HTTPException(
+            status_code=400,
+            detail="Nu există un calcul fotovoltaic valid pe proiectul activ. Rulează mai întâi modulul Fotovoltaic.",
+        )
+    # Load company profile (optional)
+    company = None
+    try:
+        company_doc = await db.company_profiles.find_one({"user_id": user.user_id}, {"_id": 0})
+        if company_doc:
+            company = company_doc
+    except Exception:
+        pass
+    pdf_bytes = pdf_export.build_tech_offer_fv_pdf(proj, fv_results, fv_data, company=company)
+    benef = (proj.get("beneficiar") or "client").encode("ascii", "ignore").decode("ascii").replace(" ", "_") or "client"
+    pkwp = fv_results.get("p_kwp", "0")
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="oferta_tehnica_FV_{pkwp}kWp_{benef}.pdf"'},
     )
 
 

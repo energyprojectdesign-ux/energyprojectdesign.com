@@ -40,6 +40,7 @@ import IndustryDetail from './pages/IndustryDetail';
 import FeaturesHub from './pages/FeaturesHub';
 import FeatureDetail from './pages/FeatureDetail';
 import DeveloperProgres from './pages/DeveloperProgres';
+import AdminConfig from './pages/AdminConfig';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -98,6 +99,7 @@ function AppRouter() {
 
       {/* Progress page (developer-only) */}
       <Route path="/developer/progres" element={<ProtectedRoute><DeveloperProgres /></ProtectedRoute>} />
+      <Route path="/admin/config" element={<ProtectedRoute><AdminConfig /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

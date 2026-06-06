@@ -34,13 +34,64 @@ class User(BaseModel):
     plan_renews_at: Optional[str] = None
     gmail_user: Optional[str] = None
     gmail_configured: bool = False
+    secondary_email: Optional[EmailStr] = None  # Business email (CC on all outgoing)
     qes_provider: Optional[str] = None
     qes_credentials: Optional[Dict[str, Any]] = None  # stored per provider
     active_project_id: Optional[str] = None
     gdpr_consent: bool = False
     gdpr_consent_at: Optional[str] = None
     is_developer: bool = False
+    is_admin: bool = False  # platform admin role (developer counts as admin too)
+    is_banned: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+# ---- Admin Config (platform-wide singleton) ----
+class AdminConfig(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    config_id: str = "global"
+    # Platform SMTP fallback (used when user has no Gmail configured)
+    smtp_from_name: Optional[str] = "Energy Project Design"
+    smtp_global_user: Optional[str] = None
+    smtp_global_password: Optional[str] = None
+    smtp_cc_secondary_default: bool = True  # Auto-CC user's secondary email
+    # Feature flags
+    feature_forum_enabled: bool = True
+    feature_email_enabled: bool = True
+    feature_pdf_enabled: bool = True
+    feature_photovoltaic_enabled: bool = True
+    feature_ai_assistant_enabled: bool = True
+    feature_payments_enabled: bool = True
+    # Operational
+    maintenance_mode: bool = False
+    maintenance_message: Optional[str] = ""
+    announcement_banner: Optional[str] = ""
+    announcement_level: str = "info"  # info | warning | success | danger
+    updated_at: Optional[str] = None
+    updated_by: Optional[str] = None
+
+
+class AdminConfigUpdate(BaseModel):
+    smtp_from_name: Optional[str] = None
+    smtp_global_user: Optional[str] = None
+    smtp_global_password: Optional[str] = None
+    smtp_cc_secondary_default: Optional[bool] = None
+    feature_forum_enabled: Optional[bool] = None
+    feature_email_enabled: Optional[bool] = None
+    feature_pdf_enabled: Optional[bool] = None
+    feature_photovoltaic_enabled: Optional[bool] = None
+    feature_ai_assistant_enabled: Optional[bool] = None
+    feature_payments_enabled: Optional[bool] = None
+    maintenance_mode: Optional[bool] = None
+    maintenance_message: Optional[str] = None
+    announcement_banner: Optional[str] = None
+    announcement_level: Optional[str] = None
+
+
+class AdminUserRoleUpdate(BaseModel):
+    is_admin: Optional[bool] = None
+    is_banned: Optional[bool] = None
+    plan: Optional[str] = None
 
 
 class UserRegisterV2(BaseModel):

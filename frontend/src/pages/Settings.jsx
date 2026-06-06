@@ -75,8 +75,10 @@ export default function Settings() {
   const { user, refresh } = useAuth();
   const [gmailUser, setGmailUser] = useState('');
   const [gmailPwd, setGmailPwd] = useState('');
+  const [secondaryEmail, setSecondaryEmail] = useState('');
   const [configured, setConfigured] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [secBusy, setSecBusy] = useState(false);
   const [providers, setProviders] = useState([]);
   const [selectedProvider, setSelectedProvider] = useState(user?.qes_provider || null);
 
@@ -89,12 +91,24 @@ export default function Settings() {
         ]);
         setConfigured(e.configured);
         setGmailUser(e.gmail_user || '');
+        setSecondaryEmail(e.secondary_email || '');
         setProviders(p);
       } catch (err) {
         console.error('Settings load failed:', err);
       }
     })();
   }, []);
+
+  const saveSecondaryEmail = async (e) => {
+    e.preventDefault();
+    setSecBusy(true);
+    try {
+      await api.patch('/users/me', { secondary_email: secondaryEmail.trim() });
+      toast.success(secondaryEmail ? 'Email business secundar salvat — va fi adăugat automat în CC' : 'Email business eliminat');
+      await refresh();
+    } catch (err) { toast.error(err?.response?.data?.detail || 'Eroare'); }
+    finally { setSecBusy(false); }
+  };
 
   const saveGmail = async (e) => {
     e.preventDefault();
@@ -178,7 +192,7 @@ export default function Settings() {
             <li>Mergeți la <a href="https://myaccount.google.com/security" target="_blank" rel="noreferrer" className="underline font-medium inline-flex items-center gap-1">myaccount.google.com/security <ExternalLink className="w-3 h-3" /></a></li>
             <li>Activați <strong>verificarea în 2 pași</strong> (dacă nu e deja).</li>
             <li>În aceeași pagină, accesați <strong>App passwords</strong> (sau <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="underline">myaccount.google.com/apppasswords</a>).</li>
-            <li>Creați parolă nouă pentru aplicația "StampDoc". Veți primi 16 caractere — copiați-le și lipiți-le mai jos.</li>
+            <li>Creați parolă nouă pentru aplicația &bdquo;StampDoc&rdquo;. Veți primi 16 caractere — copiați-le și lipiți-le mai jos.</li>
             <li>Salvați. Gata!</li>
           </ol>
         </details>
@@ -217,6 +231,54 @@ export default function Settings() {
           </div>
         </form>
       </div>
+
+      {/* Secondary Business Email */}
+      <div className="bg-white border border-gray-200 p-8 mb-8" data-testid="secondary-email-section">
+        <div className="flex items-start gap-4 mb-6">
+          <div className="w-10 h-10 bg-[#FFB300] text-black flex items-center justify-center shrink-0"><Mail className="w-5 h-5" /></div>
+          <div className="flex-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-xl font-semibold tracking-tight">Email business secundar</h2>
+              {secondaryEmail && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#16A34A]/10 text-[#16A34A] text-xs font-semibold uppercase tracking-wider"><Check className="w-3 h-3" />Activ</span>
+              )}
+            </div>
+            <p className="text-sm text-gray-600 mt-2">Adresa companiei (ex: <span className="mono">contact@firma.ro</span>) primește automat <strong>CC</strong> la fiecare email trimis prin platformă. Util pentru evidență centralizată a corespondenței tehnice.</p>
+          </div>
+        </div>
+        <form onSubmit={saveSecondaryEmail} className="grid md:grid-cols-[1fr_auto] gap-3 items-end">
+          <div>
+            <label className="label block mb-2">Adresă business (opțional)</label>
+            <input
+              data-testid="secondary-email-input"
+              type="email"
+              value={secondaryEmail}
+              onChange={(e) => setSecondaryEmail(e.target.value)}
+              placeholder="contact@firma-ta.ro"
+              className="w-full border border-gray-300 px-3 py-2.5 text-sm rounded-sm focus:outline-none focus:border-[#FFB300] focus:ring-2 focus:ring-[#FFB300]/30"
+            />
+          </div>
+          <button type="submit" disabled={secBusy} className="amber-btn disabled:opacity-50 h-[42px]" data-testid="save-secondary-email-btn">
+            <Save className="w-3.5 h-3.5" /> {secBusy ? 'Se salvează…' : (secondaryEmail ? 'Salvează' : 'Elimină')}
+          </button>
+        </form>
+      </div>
+
+      {/* Admin panel teaser (only for admins/devs) */}
+      {(user?.is_developer || user?.is_admin) && (
+        <Link to="/admin/config" data-testid="admin-config-link" className="block relative overflow-hidden mb-8 bg-gradient-to-br from-[#0A0A0A] via-[#1a1a1a] to-[#0A0A0A] text-white p-6 border-l-4 border-[#FFB300] hover:border-l-8 transition-all group">
+          <div className="absolute -right-12 -top-12 w-40 h-40 bg-[#FFB300]/10 blur-3xl rounded-full pointer-events-none" />
+          <div className="relative flex items-center gap-4">
+            <div className="w-12 h-12 bg-[#FFB300] text-black flex items-center justify-center shrink-0"><ShieldCheck className="w-6 h-6" /></div>
+            <div className="flex-1">
+              <div className="text-[10px] uppercase tracking-[0.25em] text-[#FFB300] mb-1">// admin only</div>
+              <div className="text-lg font-bold tracking-tight">Configurare globală platformă</div>
+              <p className="text-sm text-gray-300 mt-1">SMTP global · Feature flags · Gestionare utilizatori · Bannere & mentenanță</p>
+            </div>
+            <div className="text-[#FFB300] group-hover:translate-x-1 transition-transform text-2xl">→</div>
+          </div>
+        </Link>
+      )}
 
       {/* QES provider */}
       <div className="bg-white border border-gray-200 p-8 mb-8" data-testid="qes-config-section">

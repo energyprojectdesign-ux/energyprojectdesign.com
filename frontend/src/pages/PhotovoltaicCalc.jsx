@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import AppShell from '../components/AppShell';
 import api from '../lib/api';
 import { toast } from 'sonner';
-import { Sun, RefreshCw, Save, Zap, Cable, Shield, TrendingUp, Building2, FileJson } from 'lucide-react';
+import { Sun, RefreshCw, Save, Zap, Cable, Shield, TrendingUp, Building2, FileJson, FileDown } from 'lucide-react';
 
 const ZONE_OPTIONS = [
   { value: 'sud', label: 'Sud (Dobrogea, Bărăgan) — 1450 kWh/m²' },
@@ -84,6 +84,23 @@ export default function PhotovoltaicCalc() {
     a.href = URL.createObjectURL(blob);
     a.download = `calcul-fv-${form.p_kwp}kWp.json`;
     a.click();
+  };
+
+  const downloadTechOfferPdf = async () => {
+    if (!results) return;
+    try {
+      const res = await api.get('/photovoltaic/tech-offer-pdf', { responseType: 'blob' });
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `oferta-tehnica-FV-${form.p_kwp}kWp.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Oferta tehnică PDF generată');
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || 'Eroare generare PDF');
+    }
   };
 
   return (
@@ -189,6 +206,14 @@ export default function PhotovoltaicCalc() {
                 <FileJson className="w-3.5 h-3.5" /> Export JSON
               </button>
             </div>
+            <button
+              data-testid="fv-tech-offer-pdf-btn"
+              onClick={downloadTechOfferPdf}
+              disabled={!results}
+              className="mt-2 w-full text-sm py-2.5 px-3 bg-black text-[#FFB300] font-semibold flex items-center justify-center gap-2 hover:bg-[#FFB300] hover:text-black border-2 border-black transition-colors disabled:opacity-40 disabled:cursor-not-allowed uppercase tracking-wider text-xs"
+            >
+              <FileDown className="w-3.5 h-3.5" /> Generează Ofertă Tehnică FV (PDF)
+            </button>
             {savedAt && <div className="text-[10px] text-gray-500 uppercase tracking-[0.18em] mt-3">Ultima rulare {savedAt}</div>}
           </div>
         </div>

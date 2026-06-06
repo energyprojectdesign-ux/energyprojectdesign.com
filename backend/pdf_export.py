@@ -5,6 +5,7 @@ Uses reportlab (pure-Python, no system deps).
 """
 import io
 from datetime import datetime
+from typing import Optional
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
@@ -224,6 +225,215 @@ def build_project_pdf(project: dict, calc_results: dict = None, verification: di
         styles["small"],
     ))
 
-    on_page = lambda c, d: _header(c, d, project_name)
+    on_page = lambda c, d: _header(c, d, project_name)  # noqa: E731
+    doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
+    return buf.getvalue()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tech Offer Photovoltaic — commercial-grade A4 PDF generated directly from
+# /api/photovoltaic results. Designed for B2B sales handoff to end clients.
+# ─────────────────────────────────────────────────────────────────────────────
+def _tech_offer_header(canvas, doc, project_name, company_name):
+    canvas.saveState()
+    # Premium top bar with gradient look
+    canvas.setFillColor(COL_BLACK)
+    canvas.rect(0, A4[1] - 2.2 * cm, A4[0], 2.2 * cm, fill=1, stroke=0)
+    canvas.setFillColor(COL_ACCENT)
+    canvas.rect(0, A4[1] - 2.25 * cm, A4[0], 0.05 * cm, fill=1, stroke=0)
+    canvas.setFillColor(COL_ACCENT)
+    canvas.setFont("Helvetica-Bold", 14)
+    canvas.drawString(2 * cm, A4[1] - 1.1 * cm, "OFERTĂ TEHNICĂ — SISTEM FOTOVOLTAIC")
+    canvas.setFillColor(colors.white)
+    canvas.setFont("Helvetica", 8)
+    canvas.drawString(2 * cm, A4[1] - 1.55 * cm, f"Beneficiar: {project_name[:60]}")
+    canvas.drawString(2 * cm, A4[1] - 1.9 * cm, f"Emitent: {company_name[:60]}")
+    canvas.setFillColor(COL_ACCENT)
+    canvas.setFont("Helvetica-Bold", 9)
+    canvas.drawRightString(A4[0] - 2 * cm, A4[1] - 1.1 * cm, "ANRE Ord. 34/2024")
+    canvas.setFillColor(colors.white)
+    canvas.setFont("Helvetica", 7)
+    canvas.drawRightString(A4[0] - 2 * cm, A4[1] - 1.55 * cm, "SR EN 50618 · I7-2011")
+    canvas.drawRightString(A4[0] - 2 * cm, A4[1] - 1.9 * cm, f"Generat: {datetime.now().strftime('%d.%m.%Y')}")
+    # Footer
+    canvas.setFillColor(COL_GRAY)
+    canvas.setFont("Helvetica", 7)
+    canvas.drawString(2 * cm, 1.2 * cm, "Ofertă validă 30 zile · Documentul nu constituie angajament contractual.")
+    canvas.drawRightString(A4[0] - 2 * cm, 1.2 * cm, f"Pagina {doc.page}")
+    canvas.setFillColor(COL_ACCENT)
+    canvas.rect(0, 0.9 * cm, A4[0], 0.04 * cm, fill=1, stroke=0)
+    canvas.setFillColor(COL_BLACK)
+    canvas.setFont("Helvetica-Bold", 7)
+    canvas.drawCentredString(A4[0] / 2, 0.55 * cm, "ENERGY PROJECT DESIGN SERVICES · contact@energyprojectdesign.ro")
+    canvas.restoreState()
+
+
+def build_tech_offer_fv_pdf(project: dict, fv_results: dict, fv_data: dict, company: Optional[dict] = None) -> bytes:
+    """Render a commercial Photovoltaic Tech Offer PDF and return bytes.
+
+    Args:
+        project: project dict (beneficiar, adresa_lucrare, etc.)
+        fv_results: output of photovoltaic.calculate()
+        fv_data: input data used for the calculation
+        company: optional emitter company profile
+    """
+    buf = io.BytesIO()
+    project_name = project.get("beneficiar") or project.get("name") or "Beneficiar"
+    company_name = (company or {}).get("name") or "Energy Project Design SRL"
+
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        leftMargin=2 * cm, rightMargin=2 * cm,
+        topMargin=3.0 * cm, bottomMargin=2.0 * cm,
+        title=f"Ofertă tehnică FV — {project_name}",
+        author=company_name,
+    )
+    styles = _styles()
+    story = []
+
+    # ── Hero block ──
+    pkwp = fv_results.get("p_kwp", "—")
+    cat = (fv_results.get("categorie_anre") or {})
+    hero_data = [[
+        Paragraph(
+            f'<font size="9" color="#6B7280">SISTEM FOTOVOLTAIC PROPUS</font><br/>'
+            f'<font size="28" color="#0A0A0A"><b>{pkwp} kWp</b></font><br/>'
+            f'<font size="10" color="#4B5563">Categorie ANRE <b>{cat.get("categorie", "—")}</b> · {cat.get("label", "")}</font>',
+            styles["body"]
+        ),
+        Paragraph(
+            f'<font size="8" color="#FFB300"><b>TIP RACORD</b></font><br/>'
+            f'<font size="11" color="#0A0A0A">{cat.get("tip_racord", "—")}</font><br/><br/>'
+            f'<font size="8" color="#FFB300"><b>AVIZ NECESAR</b></font><br/>'
+            f'<font size="11" color="#0A0A0A">{cat.get("aviz", "—")}</font>',
+            styles["body"]
+        ),
+    ]]
+    hero = Table(hero_data, colWidths=(11 * cm, 6 * cm))
+    hero.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), COL_LIGHT),
+        ("BOX", (0, 0), (-1, -1), 0.5, COL_ACCENT),
+        ("LEFTPADDING", (0, 0), (-1, -1), 14),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 14),
+        ("TOPPADDING", (0, 0), (-1, -1), 14),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 14),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+    ]))
+    story.append(hero)
+    story.append(Spacer(1, 0.5 * cm))
+
+    # ── Beneficiar & emitent ──
+    story.append(_section_header("Părți contractante", styles))
+    story.append(_kv_table([
+        ("Beneficiar", project.get("beneficiar")),
+        ("Adresa lucrării", f'{project.get("adresa_lucrare", "")}, {project.get("localitate", "")} {project.get("judet", "")}'.strip(", ")),
+        ("Telefon contact", project.get("telefon")),
+        ("Email contact", project.get("email")),
+        ("Emitent ofertă", company_name),
+        ("CUI emitent", (company or {}).get("cui") or "RO43151074"),
+        ("Reprezentant", project.get("proiectant") or (company or {}).get("rep") or "—"),
+    ]))
+
+    # ── Componente sistem ──
+    panouri = fv_results.get("panouri", {})
+    string_ = fv_results.get("string", {})
+    invertor = fv_results.get("invertor", {})
+    story.append(_section_header("Configurație tehnică propusă", styles))
+    comp_data = [
+        ["#", "Componentă", "Specificație", "Cantitate"],
+        ["1", "Panouri fotovoltaice", f'{panouri.get("putere_unitara_wp", "—")} Wp mono TOPCon', f'{panouri.get("n_panouri", "—")} buc'],
+        ["2", "Configurație string", f'{string_.get("n_serie_optim", "—")} module/string · {string_.get("u_string_stc_v", "—")} V STC', f'{string_.get("n_string", "—")} string'],
+        ["3", "Invertor", f'{invertor.get("p_invertor_recomandat_kw", "—")} kW · raport DC/AC {invertor.get("raport_dc_ac", "—")}', "1 buc"],
+        ["4", "Cablu DC", f'{fv_results.get("cablu_dc", {}).get("tip_cablu", "—")} · {fv_results.get("cablu_dc", {}).get("sectiune_standard_mm2", "—")} mm²', f'{fv_data.get("lungime_dc_m", "—")} m'],
+        ["5", "Cablu AC", f'{fv_results.get("cablu_ac", {}).get("tip_cablu", "—")} · {fv_results.get("cablu_ac", {}).get("sectiune_standard_mm2", "—")} mm²', f'{fv_data.get("lungime_ac_m", "—")} m'],
+    ]
+    # Add protections as additional rows
+    protectii = fv_results.get("protectii", [])
+    for idx, p in enumerate(protectii, start=6):
+        comp_data.append([str(idx), p.get("nume", "Protecție"), f'{p.get("tip", "")} — {p.get("rol", "")}'[:60], "1 buc"])
+
+    comp_table = Table(comp_data, colWidths=(1 * cm, 4.5 * cm, 8.5 * cm, 3 * cm))
+    comp_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), COL_BLACK),
+        ("TEXTCOLOR", (0, 0), (-1, 0), COL_ACCENT),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+        ("ALIGN", (0, 0), (0, -1), "CENTER"),
+        ("ALIGN", (3, 0), (3, -1), "RIGHT"),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, COL_LIGHT]),
+        ("LEFTPADDING", (0, 0), (-1, -1), 6),
+        ("TOPPADDING", (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.25, colors.HexColor("#E5E7EB")),
+    ]))
+    story.append(comp_table)
+
+    # ── Producție estimată ──
+    productie = fv_results.get("productie", {})
+    story.append(_section_header("Producție energetică estimată", styles))
+    prod_rows = [
+        ("Producție anuală", f'{int(productie.get("productie_anuala_kwh") or 0):,} kWh/an'.replace(",", ".")),
+        ("Producție specifică", f'{productie.get("productie_specifica_kwh_kwp", "—")} kWh/kWp/an'),
+        ("Zonă iradiație PVGIS", f'{fv_data.get("zona_geografica", "implicit")}'),
+        ("Performance Ratio (PR)", f'{productie.get("pr", "—")}'),
+        ("CO₂ evitat anual (estimare)", f'{int((productie.get("productie_anuala_kwh") or 0) * 0.43):,} kg'.replace(",", ".")),
+    ]
+    story.append(_kv_table(prod_rows))
+
+    # ── Conformitate normativă ──
+    story.append(_section_header("Conformitate normativă", styles))
+    norms = [
+        "✓ ANRE Ord. 34/2024 — categorii prosumator/producător",
+        "✓ SR EN 50618 — cabluri solar DC",
+        "✓ I7-2011 — instalații electrice de joasă tensiune",
+        "✓ SR EN 62446 — punere în funcțiune & verificări periodice",
+        "✓ HG 162/2024 — schema de sprijin pentru prosumatori",
+    ]
+    for n in norms:
+        story.append(Paragraph(f'<font color="#16A34A">{n[0]}</font> <font color="#0A0A0A">{n[2:]}</font>', styles["body"]))
+        story.append(Spacer(1, 0.05 * cm))
+
+    # ── Termeni comerciali ──
+    story.append(Spacer(1, 0.3 * cm))
+    story.append(_section_header("Termeni comerciali", styles))
+    terms = Table([
+        ["Validitate ofertă", "30 zile calendaristice de la data emiterii"],
+        ["Termen execuție", "Estimat 30-60 zile lucrătoare de la avansarea contractului"],
+        ["Garanție echipamente", "Panouri: 25 ani liniară · Invertor: 10 ani (extensibil)"],
+        ["Documentație inclusă", "Proiect tehnic, dosar racordare OSD/DEER, dosar prosumator ANRE"],
+        ["Modalitate plată", "30% avans · 40% livrare materiale · 30% PIF"],
+    ], colWidths=(5.5 * cm, 11 * cm))
+    terms.setStyle(TableStyle([
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+        ("TEXTCOLOR", (0, 0), (0, -1), COL_GRAY),
+        ("TEXTCOLOR", (1, 0), (1, -1), COL_BLACK),
+        ("FONTNAME", (1, 0), (1, -1), "Helvetica-Bold"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ("BACKGROUND", (0, 0), (-1, -1), COL_LIGHT),
+        ("LINEBELOW", (0, 0), (-1, -1), 0.25, colors.HexColor("#E5E7EB")),
+    ]))
+    story.append(terms)
+
+    # ── Semnături ──
+    story.append(Spacer(1, 0.8 * cm))
+    sig = Table([
+        [
+            Paragraph('<font size="8" color="#6B7280">EMITENT OFERTĂ</font><br/><br/><br/><br/>_____________________<br/>'
+                      f'<font size="9"><b>{company_name}</b></font>', styles["body"]),
+            Paragraph('<font size="8" color="#6B7280">BENEFICIAR — ACCEPT</font><br/><br/><br/><br/>_____________________<br/>'
+                      f'<font size="9"><b>{project_name}</b></font>', styles["body"]),
+        ],
+    ], colWidths=(8.5 * cm, 8.5 * cm))
+    sig.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
+    ]))
+    story.append(sig)
+
+    def on_page(c, d):
+        return _tech_offer_header(c, d, project_name, company_name)
     doc.build(story, onFirstPage=on_page, onLaterPages=on_page)
     return buf.getvalue()

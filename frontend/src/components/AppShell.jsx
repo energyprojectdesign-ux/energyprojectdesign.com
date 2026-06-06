@@ -101,9 +101,12 @@ export default function AppShell({ children, title, subtitle }) {
             </div>
           ))}
 
-          {user?.is_developer && (
+          {(user?.is_developer || user?.is_admin) && (
             <div>
               <div className="px-3 mb-2 text-[10px] uppercase tracking-[0.2em] text-[#FFB300]">// Intern</div>
+              <Link to="/admin/config" data-testid="nav-admin-config" className={`flex items-center gap-3 px-3 py-2 text-[13px] transition-colors rounded-sm ${location.pathname.startsWith('/admin/config') ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
+                <ShieldCheck className="w-3.5 h-3.5 shrink-0" /><span className="flex-1">Admin Config</span>
+              </Link>
               <Link to="/developer" data-testid="nav-developer" className={`flex items-center gap-3 px-3 py-2 text-[13px] transition-colors rounded-sm ${location.pathname === '/developer' ? 'bg-black text-white' : 'text-gray-700 hover:bg-gray-100'}`}>
                 <Wrench className="w-3.5 h-3.5 shrink-0" /><span className="flex-1">AI Developer Plan</span>
               </Link>
