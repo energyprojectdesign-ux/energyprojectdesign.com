@@ -26,7 +26,6 @@ from models import (
     CheckoutRequest, PaymentTransaction, new_id,
     ProjectIn, Project, TechnicalDataIn,
     CertificationCreate, Certification, AIQuery,
-    ChatbotMessage, ChatbotSessionCreate,
 )
 from auth import (
     hash_password, verify_password, create_jwt,
@@ -39,7 +38,6 @@ import qes_provider
 import plans as plans_module
 import calc_engine
 import ai_assistant
-import ai_chatbot
 import ai_developer
 import industries as industries_module
 import system_templates
@@ -1508,6 +1506,137 @@ async def list_ai_agents():
     return {"agents": AI_AGENTS_REGISTRY, "count": len(AI_AGENTS_REGISTRY)}
 
 
+# ====================== SEAP (skeleton — vision module) ======================
+import seap_integration  # noqa: E402
+
+
+@api.get("/seap/tenders")
+async def seap_tenders(
+    industry: Optional[str] = None,
+    limit: int = 20,
+    user: User = Depends(get_current_user),
+):
+    """STUB — returns synthetic tenders so the UI/feature can be wired before real SEAP API."""
+    tenders = seap_integration.fetch_tenders_stub(industry=industry, limit=limit)
+    return {"mode": "STUB", "count": len(tenders), "tenders": tenders}
+
+
+@api.get("/seap/status")
+async def seap_status(user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    return seap_integration.integration_status()
+
+
+# ====================== Subscribers / Contracts / Jobs (developer-only minimal CRUD) ======================
+def _strip_oid(doc: dict) -> dict:
+    doc.pop("_id", None)
+    return doc
+
+
+@api.get("/dev/subscribers")
+async def dev_list_subscribers(user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    docs = await db.subscribers.find().sort("created_at", -1).to_list(length=500)
+    return [_strip_oid(d) for d in docs]
+
+
+@api.post("/dev/subscribers")
+async def dev_create_subscriber(payload: dict, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    doc = {
+        "id": new_id("sub_"),
+        "name": (payload.get("name") or "").strip(),
+        "email": (payload.get("email") or "").strip(),
+        "phone": (payload.get("phone") or "").strip(),
+        "industry": payload.get("industry"),
+        "tags": payload.get("tags") or [],
+        "notes": payload.get("notes") or "",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.subscribers.insert_one(doc)
+    return _strip_oid(doc)
+
+
+@api.delete("/dev/subscribers/{sub_id}")
+async def dev_delete_subscriber(sub_id: str, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    r = await db.subscribers.delete_one({"id": sub_id})
+    return {"deleted": r.deleted_count}
+
+
+@api.get("/dev/contracts")
+async def dev_list_contracts(user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    docs = await db.contracts.find().sort("created_at", -1).to_list(length=500)
+    return [_strip_oid(d) for d in docs]
+
+
+@api.post("/dev/contracts")
+async def dev_create_contract(payload: dict, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    doc = {
+        "id": new_id("ctr_"),
+        "subscriber_id": payload.get("subscriber_id"),
+        "title": (payload.get("title") or "").strip(),
+        "value_eur": float(payload.get("value_eur") or 0),
+        "status": payload.get("status") or "draft",
+        "start_date": payload.get("start_date"),
+        "end_date": payload.get("end_date"),
+        "notes": payload.get("notes") or "",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.contracts.insert_one(doc)
+    return _strip_oid(doc)
+
+
+@api.delete("/dev/contracts/{ctr_id}")
+async def dev_delete_contract(ctr_id: str, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    r = await db.contracts.delete_one({"id": ctr_id})
+    return {"deleted": r.deleted_count}
+
+
+@api.get("/dev/jobs")
+async def dev_list_jobs(user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    docs = await db.jobs.find().sort("created_at", -1).to_list(length=500)
+    return [_strip_oid(d) for d in docs]
+
+
+@api.post("/dev/jobs")
+async def dev_create_job(payload: dict, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    doc = {
+        "id": new_id("job_"),
+        "title": (payload.get("title") or "").strip(),
+        "industry": payload.get("industry"),
+        "location": payload.get("location") or "",
+        "type": payload.get("type") or "full_time",
+        "description": payload.get("description") or "",
+        "is_public": bool(payload.get("is_public", True)),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.jobs.insert_one(doc)
+    return _strip_oid(doc)
+
+
+@api.delete("/dev/jobs/{job_id}")
+async def dev_delete_job(job_id: str, user: User = Depends(get_current_user)):
+    _ensure_developer(user)
+    r = await db.jobs.delete_one({"id": job_id})
+    return {"deleted": r.deleted_count}
+
+
+@api.get("/jobs")
+async def public_list_jobs(industry: Optional[str] = None, limit: int = 50):
+    """Public listing of jobs marked as public."""
+    q: dict = {"is_public": True}
+    if industry:
+        q["industry"] = industry
+    docs = await db.jobs.find(q).sort("created_at", -1).to_list(length=limit)
+    return [_strip_oid(d) for d in docs]
+
+
 # ====================== ROOT ======================
 @api.get("/")
 async def root():
@@ -1793,44 +1922,11 @@ async def get_company_placeholders(user: User = Depends(get_current_user)):
     return company_module.placeholders_from_profile(profile)
 
 
-# ====================== AI CHATBOT (Energy Consulting) ======================
-@api.post("/chatbot/message")
-async def chatbot_send(payload: ChatbotMessage, user: User = Depends(get_current_user)):
-    """Send a message to the energy consulting AI. Returns full assistant reply."""
-    sid = payload.session_id or new_id("cb_")
-    try:
-        answer = await ai_chatbot.reply(db, user.user_id, sid, payload.message, payload.lang or "ro")
-    except Exception as e:
-        logger.exception("Chatbot reply failed")
-        raise HTTPException(status_code=500, detail=f"AI indisponibil: {e}")
-    return {"session_id": sid, "answer": answer}
-
-
-@api.get("/chatbot/sessions")
-async def chatbot_list(user: User = Depends(get_current_user)):
-    return await ai_chatbot.list_sessions(db, user.user_id)
-
-
-@api.get("/chatbot/sessions/{session_id}")
-async def chatbot_get(session_id: str, user: User = Depends(get_current_user)):
-    sess = await ai_chatbot.get_session(db, user.user_id, session_id)
-    if not sess:
-        raise HTTPException(status_code=404, detail="Sesiune negăsită")
-    sess.pop("_id", None)
-    return sess
-
-
-@api.post("/chatbot/sessions")
-async def chatbot_create(payload: ChatbotSessionCreate, user: User = Depends(get_current_user)):
-    sid = new_id("cb_")
-    sess = await ai_chatbot.create_session(db, user.user_id, sid, payload.title or "Conversație nouă", payload.lang or "ro")
-    return sess
-
-
-@api.delete("/chatbot/sessions/{session_id}")
-async def chatbot_delete(session_id: str, user: User = Depends(get_current_user)):
-    n = await ai_chatbot.delete_session(db, user.user_id, session_id)
-    return {"deleted": n}
+# ====================== AI CHATBOT (removed — superseded by AI Assistant + AI Developer) ======================
+# The standalone chatbot endpoints were removed. Inline AI guidance is provided
+# via `ai_assistant.parse()` (intent parser) for end-users, and `ai_developer.py`
+# for admin/developer commands. A future Voice Support page (clients) will live
+# under `/feat-uri` as a separate module.
 
 
 app.include_router(api)

@@ -207,18 +207,6 @@ class EmailSendRequest(BaseModel):
     use_business_account: bool = True  # default: send from business email if configured
 
 
-# ---- AI Chatbot ----
-class ChatbotMessage(BaseModel):
-    session_id: Optional[str] = None
-    message: str = Field(min_length=1, max_length=4000)
-    lang: Optional[str] = "ro"
-
-
-class ChatbotSessionCreate(BaseModel):
-    title: Optional[str] = "Conversație nouă"
-    lang: Optional[str] = "ro"
-
-
 # ---- Subscription / Stripe ----
 class CheckoutRequest(BaseModel):
     plan_id: str  # 'pro' or 'enterprise'
