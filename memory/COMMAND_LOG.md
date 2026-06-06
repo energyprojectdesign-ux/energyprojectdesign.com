@@ -122,3 +122,30 @@
 ---
 
 _Future entries will be appended below as work progresses. Format must be preserved._
+
+---
+
+## Session: Consolidation audit (2026-02 fork)
+
+### [2026-02 fork] · USER · RESUME_FROM_LOGS
+- **Command**: "actualizeaza site-ul dupa log-urile comenzilor date de ceilalti utilizatori emergent care au lucrat la site. din cate retin, viziunea site-ului este o colectie de comenzi memorate. reia acel path si restabileste/continua pe acea cale dezvoltarea site-ului pana ramanem fara monede. memoreaza si comanda aceasta."
+- **Files affected**: /app/memory/COMMAND_LOG.md (this append)
+- **Result**: ✅ memorized
+- **Notes**: User wants strict continuation along the memorized command path. Audit log preserved.
+
+### [2026-02 fork] · USER · UNIFY_DEPLOYMENTS
+- **Command**: "am gasit problema. sunt 2 sau mai multe repository-uri emergent pe repository-ul git-hub. adresele lor sunt: https://energy-project.preview.emergentagent.com/dashboard + https://design-energy.emergent.host/pricing. uneste totul pe adresa design-energy.emergent.host/pricing. Toate feat-urile din Feat-uri.docx trebuie sa fie unite pe acelasi site. colecteaza deep word by word all data to ensure all progress worked on all 5 emergent accounts into one site."
+- **Files affected**: N/A (investigation)
+- **Result**: ✅ investigation completed — NO repo fragmentation found
+- **Notes**: AUDIT FINDINGS:
+  1. GitHub repo `dragosserban95/Energy-Project-Design` has **1 branch only** (`main`), **0 tags**, **0 alternative remotes**. All 5 Emergent accounts committed to this single repo on the same `main` branch — code IS already unified.
+  2. The 2 URLs are NOT separate repos:
+     - `energy-project.preview.emergentagent.com` → **V5.2** (current Emergent preview pod, latest code in /app, all 13 industries + 10 feat-uri modules + tracking system).
+     - `design-energy.emergent.host` → **V4.5** (OLD live deployment snapshot, NEVER re-deployed since V4.5).
+  3. Discrepancy is a DEPLOY issue: live host has not been re-deployed since V4.5. All progress (V4.6 → V4.9 → V5.0 → V5.2) exists in code but is not pushed live.
+  4. Action required from USER: press the **"Deploy"** button in the top-right of the Emergent UI to publish current V5.2 to design-energy.emergent.host.
+- **Verification**:
+  - `curl https://energy-project.preview.emergentagent.com/api/` → `{"version":"5.2"}`
+  - `curl https://design-energy.emergent.host/api/` → `{"version":"4.5"}`
+  - `git log` on cloned repo → 4 commits, all on `main`, latest = `343cf90 V5.2`
+
