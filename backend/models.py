@@ -93,6 +93,7 @@ class TechnicalDataIn(BaseModel):
     debit_instalat: Optional[float] = None
     presiune_regim: Optional[str] = ""
     diametru_conducta: Optional[str] = ""
+    diametru_bransament: Optional[str] = ""
     material_conducta: Optional[str] = ""
     lungime_bransament: Optional[float] = None
     punct_racordare: Optional[str] = ""
@@ -103,6 +104,16 @@ class TechnicalDataIn(BaseModel):
     observatii_tehnice: Optional[str] = ""
     # overrides (manual) keyed by calc result name
     overrides: Optional[Dict[str, Any]] = Field(default_factory=dict)
+
+
+class PhotovoltaicDataIn(BaseModel):
+    """Date intrare pentru calcul fotovoltaic deep."""
+    p_kwp: float = Field(gt=0, description="Putere instalată dorită (kWp)")
+    p_panou_wp: Optional[float] = 450
+    lungime_dc_m: Optional[float] = 30
+    lungime_ac_m: Optional[float] = 15
+    monofazat: Optional[bool] = False
+    zona_geografica: Optional[str] = "implicit"  # sud / sud_est / centru / nord_est / nord_vest / implicit
 
 
 # ---- Certifications ----

@@ -9,6 +9,47 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 # Match {{variable_name}} or {variable_name}
 PLACEHOLDER_RE = re.compile(r"\{\{\s*([a-zA-Z0-9_\-\.\s]+?)\s*\}\}|<\s*([a-zA-Z0-9_]+?)\s*>")
 
+# Smart IF/ELSE placeholder: {IF var<10: text X ELSE text Y}
+#   - operatori suportați: < <= > >= == !=
+#   - var = orice key din values dict (numeric sau string)
+#   - branch-ul ELSE este opțional
+SMART_IF_RE = re.compile(
+    r"\{IF\s+([a-zA-Z0-9_]+)\s*(<=|>=|==|!=|<|>)\s*([^:]+?)\s*:\s*([^|}]+?)(?:\s*ELSE\s+([^|}]+?))?\s*\}",
+    re.IGNORECASE,
+)
+
+
+def _coerce(v):
+    """Try numeric, fall back to stripped string (lowercased)."""
+    try:
+        return float(str(v).replace(",", ".").strip())
+    except (ValueError, TypeError):
+        return str(v).strip().lower()
+
+
+def _eval_smart_if(match, values: Dict[str, str]) -> str:
+    var = match.group(1)
+    op = match.group(2)
+    rhs_raw = match.group(3).strip().strip('"').strip("'")
+    branch_if = match.group(4).strip()
+    branch_else = (match.group(5) or "").strip()
+    lhs = _coerce(values.get(var, ""))
+    rhs = _coerce(rhs_raw)
+    # If types mismatch (one numeric, one string), coerce both to strings for ==/!=
+    if isinstance(lhs, float) != isinstance(rhs, float):
+        lhs, rhs = str(lhs), str(rhs)
+    try:
+        if op == "<": ok = lhs < rhs
+        elif op == "<=": ok = lhs <= rhs
+        elif op == ">": ok = lhs > rhs
+        elif op == ">=": ok = lhs >= rhs
+        elif op == "==": ok = lhs == rhs
+        elif op == "!=": ok = lhs != rhs
+        else: ok = False
+    except TypeError:
+        ok = False
+    return branch_if if ok else branch_else
+
 
 def _match_key(m) -> str:
     return (m.group(1) or m.group(2)).strip()
@@ -42,16 +83,19 @@ def _replace_in_paragraph(paragraph, values: Dict[str, str]):
 
     Because python-docx splits runs unpredictably, we join run text, do the replacement,
     then put the full result into the first run and clear the others.
+
+    Order: (1) smart {IF ...} blocks first, (2) plain {{var}} substitutions.
     """
     full_text = "".join(run.text for run in paragraph.runs)
-    if not PLACEHOLDER_RE.search(full_text):
+    if not (PLACEHOLDER_RE.search(full_text) or SMART_IF_RE.search(full_text)):
         return
 
     def repl(match):
         key = _match_key(match)
         return str(values.get(key, match.group(0)))
 
-    new_text = PLACEHOLDER_RE.sub(repl, full_text)
+    new_text = SMART_IF_RE.sub(lambda m: _eval_smart_if(m, values), full_text)
+    new_text = PLACEHOLDER_RE.sub(repl, new_text)
     if new_text == full_text:
         return
 

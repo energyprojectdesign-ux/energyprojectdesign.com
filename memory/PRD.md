@@ -1,89 +1,43 @@
-# Energy Project Design (EPD) — PRD
+# Energy Project Design — V5.3
 
-## Original Problem Statement
-Platformă B2B SaaS pentru proiectarea documentațiilor tehnice în energie (gaze, electricitate, fotovoltaice, telecom, feroviar, construcții, apă, salubritate, HVAC, mediu, drumuri/poduri, iluminat public) cu generare DOCX, semnătură electronică calificată (QES), audit, multi-proiect și fluxuri colaborative.
+## Status
+Consolidare codbase finalizată + implementare profundă Fotovoltaice (ANRE).
 
-## Architecture
-- **Frontend**: React 18 (port 3000), shadcn/ui, react-router v6, Stripe.js, lucide-react, sonner
-- **Backend**: FastAPI (port 8001, `/api` prefix), MongoDB
-- **Persistență**: MongoDB (`MONGO_URL`, `DB_NAME` din `backend/.env`)
-- **Auth**: JWT custom (httpOnly cookies) + Emergent OAuth social login
-- **Plăți**: Stripe (TEST keys)
-- **Documente**: python-docx (DOCX), reportlab/weasyprint (PDF)
+## Original problem statement
+Aplicație B2B SaaS pentru proiectare energetică (gaze naturale, fotovoltaice etc.). Documentații automate cu DOCX placeholder, calcule tehnice inteligente, SEO, autentificare, plăți Stripe.
 
-## Restauration Snapshot — 2026-06-06
-**Sursa**: GitHub `dragosserban95/Energy-Project-Design` branch `main` (PAT user-provided).
-- Local avea doar 5 commits (fragmente auto-commit) — versiunea avansată era pierdută local
-- **gh/main** are **232 commits** până la `343cf90` ("V5.2: official version bump + deployment-ready + end-to-end run validated")
-- Restaurare: `git checkout gh/main -- .` cu păstrare `.env` protejate
-- Backend pornește, login OK, `/api/industries` returnează 13 industrii active
+## Implementat (06.06.2026)
+- **Calc Engine — Gaz fittings (port complet din V3 legacy)**: nr_teu_derivatie, nr_mufe_electrofuziune (ceil(L/6)+1), nr_coliere_priza (ceil(L/30)+1), nr_robineti_bransament, nr_reductii (dacă D≠D), nr_coturi_90 (ceil(L/25)), material_recomandat.
+- **Fotovoltaic deep — modul nou `/app/backend/photovoltaic.py`**:
+  * 4 categorii ANRE (C1≤10.8, C2≤27, C3≤200, C4>200) cu tip racord, aviz, regim, compensare cantitativă
+  * Calcul nr. panouri (default 450Wp), configurare string (Voc rece -10°C, n_serie_max, n_string)
+  * Dimensionare invertor (raport DC/AC, min/max/recomandat)
+  * Secțiune cablu DC (formula S = 2LIρ/ΔU, H1Z2Z2-K, cădere <1%)
+  * Secțiune cablu AC mono/trifazat (cădere <1.5%, CYY-F/N2XH)
+  * Listă protecții obligatorii (DC fuse, SPD DC+AC, RCD tip B, MCB, releu rețea, smart-meter, celulă MT pt C4)
+  * Producție anuală + factor utilizare (PVGIS-SARAH3, PR=0.78, 6 zone România)
+- **Endpoint-uri noi**:
+  * `POST /api/photovoltaic/calculate`
+  * `GET /api/photovoltaic`
+  * `GET /api/photovoltaic/categories` (public)
+- **Smart placeholders DOCX cu IF/ELSE**: `{IF var<10: text X ELSE text Y}` — operatori < <= > >= == !=, suport string și numeric.
+- **`/api/project/placeholders` integrare fv_***: adaugă automat fv_p_kwp, fv_categorie_anre, fv_n_panouri, fv_invertor_kw, fv_cablu_dc_mm2, fv_protectii_lista etc.
+- **Curățenie**: `/tmp/repo2` șters complet — single source of truth = `/app/`.
 
-## Current State (V5.2 — restored from GitHub)
+## Tech Stack
+- Backend: FastAPI (port 8001), MongoDB (DB_NAME din .env), python-docx, Pydantic v2
+- Frontend: React 18 + Tailwind + shadcn/ui (port 3000)
+- Integrări: Stripe, Gmail SMTP, GitHub PAT
 
-### Industries (13 active)
-| ID | Nume | Subdomenii |
-|---|---|---|
-| `gas_engineering` | Inginerie gaze naturale | 5 |
-| `electrical_engineering` | Inginerie electrică | 5 |
-| `water_sewage` | Apă & canalizare | 5 |
-| `civil_engineering` | Inginerie civilă | 3 |
-| `telecom` | Telecomunicații | 3 |
-| `photovoltaic` | Fotovoltaice | 4 |
-| `construction` | Construcții | 5 |
-| `railway_infra` | Infrastructură feroviară | 4 |
-| `sanitation` | Salubritate | 4 |
-| `hvac` | HVAC | 5 |
-| `environment` | Mediu | 4 |
-| `roads_bridges` | Drumuri & poduri | 5 |
-| `public_lighting` | Iluminat public | 4 |
+## Backlog (P1-P3)
+- **P1**: Update Master Audit Document cu noul flow Fotovoltaic
+- **P1**: Frontend UI dedicat pt. modulul Fotovoltaic (form p_kwp, zona, etc. + display rezultate calcul)
+- **P2**: Secondary Business Email capability + Admin-Only Configuration UI
+- **P2**: Template-uri DOCX Fotovoltaice ready-to-use cu IF-uri configurate
+- **P3**: Verificare automată ANRE — apel API distribuitor pentru ATR
 
-### Backend modules (23)
-`ai_assistant`, `ai_developer`, `auth`, `calc_engine`, `company_profile`, `db`, `docx_processor`, `email_sender`, `forum`, `github_push`, `handoff`, `industries`, `models`, `payment_accounts`, `pdf_export`, `plans`, `project_lifecycle`, `qes_provider`, `seap_integration`, `server`, `signing`, `system_templates`, `verification`
-
-### Frontend pages (37)
-Landing, Login, Register, Pricing, Termeni, Confidentialitate, GDPR, Dashboard, Projects, Developer (+ chat/github/progres), AdminPaymentAccounts, Forum, CompanyProfile, AuditLogs, ProjectData, TechnicalData, SmartCalc, Verification (`/verifica`), AIAssistant, Audit, Certifications, EmailComposer, Templates (+ editor), Stamps, Certificates, Documents, Settings, IndustriesHub, IndustryDetail, FeaturesHub, FeatureDetail.
-
-### SEO (baseline)
-- `public/sitemap.xml` ✅
-- `public/robots.txt` ✅ (Sitemap reference)
-- `public/index.html` meta description + OpenGraph + Twitter cards ✅
-- ❌ JSON-LD Organization/Service schema
-- ❌ Dynamic per-route meta tags (react-helmet)
-- ❌ Public `/verify/:docId` page (only protected `/verifica` exists)
-
-## Pending Backlog (from Feat-uri.docx user vision)
-
-### 🔴 P0 — Highest priority
-1. **Photovoltaic DEEP** (`backend/industries/fotovoltaice/`):
-   - 3 categorii ANRE prosumator/producător: `<10 kWp`, `10-27 kWp`, `27-200 kWp`
-   - Calcule reale: dimensionare invertor, nr. panouri, secțiune cablu DC/AC, protecții, randament, factor de utilizare
-   - Smart DOCX placeholders cu IF/condiții (`{IF Pkw<10: text X ELSE text Y}`)
-   - Surse: ANRE Ord. 34/2024, Cod RED, AOR
-2. **Public `/verify/:docId` page** + QR code + JSON-LD verification badge
-3. **Master Audit Document** consolidat (gap analysis Feat-uri vs V5.2)
-
-### 🟡 P1
-4. SEAP daily monitor (cron + email alerts după autorizațiile ANRE companie)
-5. AI document recognition (upload PDF/poză → autocomplete câmpuri)
-6. Smart placeholders cu calcul AI pentru toate industriile
-7. Plan Developer extern (utilizatori își creează propriile tipizate/ștampile)
-
-### 🟢 P2
-8. Pagini comunitate: Voluntariat, Brand merch, Inspirational, Art & Collaboration, Sponsori
-9. SPV + facturi automate + contabilitate AI
-10. Monitorizare AI venituri/cheltuieli
-11. Asistent virtual support
-
-### ⚪ P3
-12. Mobile app (React Native sau PWA installable)
-13. Multilingv (i18n)
-14. Închiriere autorizație + parteneriate B2B
-
-## Credentials
-- Admin: `dragosserban95@gmail.com` / `Test12345`
-- GitHub PAT: stored in user message, used for `gh` remote
-- Stripe: TEST keys (preconfigurate)
-- Emergent LLM Key: configurat pentru AI chatbot
-
-## Tech Stack Changes
-- None — V5.2 restored as-is
+## Sources
+- ANRE Ord. 34/2024 (prosumatori), Ord. 89/2018 (gaze)
+- SR EN 50618, IEC 62548, I7-2011
+- PVGIS-SARAH3 (JRC) — iradiație România
+- SR 6790, SR EN 1775 (gaze naturale)

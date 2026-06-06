@@ -24,7 +24,7 @@ from models import (
     TemplateMeta, StampMeta, CertificateMeta,
     GenerateRequest, DocumentMeta, EmailSendRequest,
     CheckoutRequest, PaymentTransaction, new_id,
-    ProjectIn, Project, TechnicalDataIn,
+    ProjectIn, Project, TechnicalDataIn, PhotovoltaicDataIn,
     CertificationCreate, Certification, AIQuery,
 )
 from auth import (
@@ -37,6 +37,7 @@ from email_sender import send_email_with_attachment
 import qes_provider
 import plans as plans_module
 import calc_engine
+import photovoltaic
 import ai_assistant
 import ai_developer
 import industries as industries_module
@@ -766,8 +767,62 @@ async def project_placeholders(user: User = Depends(get_current_user)):
             placeholders[k] = str(v) if v is not None else ""
     for k, r in calc.items():
         placeholders[k] = str(r.get("value") or "")
+    # Adaugă placeholderi fotovoltaici dacă au fost calculați
+    pv_data = proj.get("photovoltaic_data") or {}
+    pv_results = proj.get("photovoltaic_results") or {}
+    if pv_results.get("status") == "ok":
+        placeholders.update(photovoltaic.to_placeholders(pv_results))
+    for k, v in pv_data.items():
+        if not isinstance(v, (dict, list)):
+            placeholders[f"fv_input_{k}"] = str(v) if v is not None else ""
     placeholders["data_document"] = datetime.now(timezone.utc).strftime("%d.%m.%Y")
     return placeholders
+
+
+# ---------------------------------------------------------------------
+# PHOTOVOLTAIC (Fotovoltaice — implementare profundă conform ANRE)
+# ---------------------------------------------------------------------
+@api.post("/photovoltaic/calculate")
+async def photovoltaic_calculate(payload: PhotovoltaicDataIn, user: User = Depends(get_current_user)):
+    """Rulează lanțul complet de calcul fotovoltaic și salvează rezultatul pe proiect."""
+    proj = await _get_or_create_default_project(user.user_id)
+    data = payload.model_dump()
+    result = photovoltaic.calculate(data)
+    now = datetime.now(timezone.utc).isoformat()
+    await db.projects.update_one(
+        {"project_id": proj["project_id"]},
+        {"$set": {"photovoltaic_data": data, "photovoltaic_results": result, "updated_at": now}},
+    )
+    return {"photovoltaic_data": data, "photovoltaic_results": result}
+
+
+@api.get("/photovoltaic")
+async def photovoltaic_get(user: User = Depends(get_current_user)):
+    proj = await _get_or_create_default_project(user.user_id)
+    return {
+        "photovoltaic_data": proj.get("photovoltaic_data") or {},
+        "photovoltaic_results": proj.get("photovoltaic_results") or {},
+    }
+
+
+@api.get("/photovoltaic/categories")
+async def photovoltaic_categories():
+    """Returnează categoriile ANRE — util pentru UI dropdown."""
+    return {
+        "categorii": [
+            {"cat": "C1", "label": "Prosumator casnic ≤ 10.8 kWp", "p_max": 10.8},
+            {"cat": "C2", "label": "Prosumator non-casnic 10.8-27 kWp", "p_max": 27},
+            {"cat": "C3", "label": "Producător mic 27-200 kWp", "p_max": 200},
+            {"cat": "C4", "label": "Parc FV > 200 kWp", "p_max": None},
+        ],
+        "zone": list(photovoltaic.IRADIATIE_KWH_M2_AN.keys()),
+        "defaults": {
+            "p_panou_wp": photovoltaic.PUTERE_PANOU_DEFAULT_WP,
+            "voc_panou": photovoltaic.VOC_PANOU_DEFAULT,
+            "isc_panou": photovoltaic.ISC_PANOU_DEFAULT,
+            "pr": photovoltaic.PR_DEFAULT,
+        },
+    }
 
 
 # Multi-project CRUD
