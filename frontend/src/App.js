@@ -51,6 +51,7 @@ import Jobs from './pages/Jobs';
 import Contracts from './pages/Contracts';
 import Personas from './pages/Personas';
 import GasNaturalProject from './pages/GasNaturalProject';
+import GasRecipients from './pages/GasRecipients';
 import Subscribers from './pages/Subscribers';
 import VerifyGasProject from './pages/VerifyGasProject';
 import Clients from './pages/Clients';
@@ -78,6 +79,7 @@ function AppRouter() {
       <Route path="/gdpr" element={<Gdpr />} />
       <Route path="/pentru/:role" element={<Personas />} />
       <Route path="/gaze-naturale" element={<ProtectedRoute><GasNaturalProject /></ProtectedRoute>} />
+      <Route path="/gaze-naturale/recipients" element={<ProtectedRoute><GasRecipients /></ProtectedRoute>} />
       <Route path="/gaze-naturale/:pid" element={<ProtectedRoute><GasNaturalProject /></ProtectedRoute>} />
       <Route path="/subscribers" element={<ProtectedRoute><Subscribers /></ProtectedRoute>} />
       <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
