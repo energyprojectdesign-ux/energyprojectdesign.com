@@ -1,6 +1,28 @@
 # Energy Project Design — PRD
 
 
+## CHANGELOG — 2026-02-07 (V5.9) — Repo unification & public verification
+
+### Backend (din repo dragosserban95/Energy-Project-Design clonat)
+- **Clients CRM** (`clients_crm.py`, legacy per-user) — endpoints `/api/clients` cu CRUD complet, filtre status+industry.
+- **Companies Directory** (`companies_directory.py`, public) — endpoints `/api/companies/{roles,stats,list,CRUD}` cu 8+ roluri (designer, executor, vgd, rte, etc.). Auto-verified pentru developers.
+- Toate mountate prin `api2` router în server.py.
+
+### Frontend
+- **Clients.jsx** (per-user CRM proiectanți) și **Companies.jsx** (directory public) — copiate din repo.
+- **VerifyGasProject.jsx** NOU — pagină publică `/verify/gas-project/:pid` (URL din QR-ul proiectului):
+  - Card de verificare cu status semnat/draft, beneficiar, locație, faza, hash SHA-256
+  - Pagină de eroare elegantă pentru PID inexistent
+  - Fără auth — accesibilă oricui scanează QR-ul
+- **Sidebar**: adăugat "Clienți (Proiectanți)" și "Companii (Directory)"
+- **App.js routes**: `/clients`, `/companies`, `/verify/gas-project/:pid`
+
+### Testing
+- **iteration_4.json**: Backend 10/10 pytest, Frontend 100% pe toate selectoarele
+- Test file: `/app/backend/tests/test_v59_features.py`
+- 0 bug-uri. Code review note: server.py la 2390 linii — refactor recomandat în următoarea iterație.
+
+
 ## CHANGELOG — 2026-02-07 (V5.8) — Gas Project Studio + Subscribers + Rate Limiting
 
 ### Backend
