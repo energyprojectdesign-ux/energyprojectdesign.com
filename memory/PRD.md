@@ -1,6 +1,38 @@
 # Energy Project Design — PRD
 
 
+## CHANGELOG — 2026-02-07 (V5.8) — Gas Project Studio + Subscribers + Rate Limiting
+
+### Backend
+- **Rate limiting AI Agents**: POST `/api/ai/agents/{agent}` cu cooldown per user (8/min, 60/zi pentru utilizatori; 30/min, 500/zi pentru admin/developer). Returnează 429 cu mesaj RO + obiect `rate_limit` în răspuns success.
+- **Modul Gas Project Studio** (`gas_project_routes.py` + `gas_project_phases.py`):
+  - 11 faze legale conform NTPEE 2018 + HG 907/2016: tema → SF → CU+Avize → DTAC → AC → PT → DE → Execuție → Probe → Recepție → PIF
+  - 78 câmpuri variabile total per proiect (beneficiar, debit, presiune, materiale, atestate ANRE, etc.)
+  - Endpoints: `GET /phases`, `POST /`, `GET /`, `GET /{pid}`, `PATCH /{pid}`, `DELETE /{pid}`, `POST /{pid}/sign`, `GET /{pid}/qr`, `GET /{pid}/public`
+  - **Semnătură digitală**: SHA-256 hash + integrare cu ștampile încărcate (`/api/stamps`)
+  - **QR code** generat dinamic (qrcode lib) cu URL public de verificare
+  - Gate: semnătura blocată sub 70% completare proiect
+- **Modul Subscribers B2B** (`subscribers_routes.py`):
+  - 5 tipuri: primarie / asociatie_locatari / utilitate_publica / dezvoltator / societate
+  - CRUD complet, filtrare după tip
+
+### Frontend
+- **GasNaturalProject.jsx** (Studio):
+  - List view cu card-uri (progress bar, status semnat/draft)
+  - Studio view cu sidebar 11 faze, formular dinamic, progress bar per fază + global, deliverables box
+  - Preview mode (read-only tabular pentru toate fazele)
+  - QR modal cu download PNG + Escape-to-close
+  - Sign panel cu selector ștampilă din contul user
+- **Subscribers.jsx**: 5 type cards, filter pills, create modal, list cards
+- **Routing**: `/gaze-naturale`, `/gaze-naturale/:pid`, `/subscribers`
+- **Sidebar**: adăugat "Gaze Naturale Studio" (nav-gaze-naturale) + "Subscriberi B2B" (nav-subscribers)
+
+### Testing
+- **iteration_3.json**: Backend 5/5 pytest passed, Frontend 100% pe toate selectoarele V5.8
+- Test file: `/app/backend/tests/test_v58_features.py`
+- 0 bug-uri critice. Fix aplicat: QR modal Escape-key close.
+
+
 ## CHANGELOG — 2026-02-07 (V5.7)
 - **Branding global**: înlocuit "StampDoc.ro" cu "Energy Project Design" în Login, Register, LegalLayout, Gdpr, Settings, TemplateEditor.
 - **Login hero text**: "Energy Project Design — international electronic technical documentation, certified and digitally stamped." (cerere directă utilizator)

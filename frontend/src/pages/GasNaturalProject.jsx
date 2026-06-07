@@ -205,6 +205,14 @@ function GasProjectStudio() {
     } catch (e) { toast.error('Eroare QR'); }
   }
 
+  // Bind Escape to close QR modal
+  useEffect(() => {
+    if (!qrModal) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') setQrModal(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [qrModal]);
+
   async function removeProject() {
     if (!window.confirm('Ștergi acest proiect? (soft delete)')) return;
     try { await api.delete(`/gas-project/${pid}`); toast.success('Șters'); navigate('/gaze-naturale'); }
