@@ -21,6 +21,7 @@ export default function Contracts() {
   const [items, setItems] = useState([]);
   const [subs, setSubs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({ status: 'all', minValue: '', maxValue: '' });
   const [form, setForm] = useState({ subscriber_id: '', title: '', value_eur: 0, status: 'draft', start_date: '', end_date: '', notes: '' });
 
   const refresh = async () => {

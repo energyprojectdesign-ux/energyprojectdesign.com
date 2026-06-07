@@ -366,6 +366,336 @@ def _build_adresa_od_fv() -> bytes:
     return out.getvalue()
 
 
+def _build_dtac_gaz() -> bytes:
+    """DTAC — Documentație Tehnică pentru obținerea Autorizației de Construire (gaze naturale).
+    Conform Legii 50/1991 + Norma 84-2018 ANRE + HG 525/1996 PUG.
+    """
+    d = Document()
+    _h(d, "DOCUMENTAȚIE TEHNICĂ PENTRU AUTORIZAȚIA DE CONSTRUIRE (D.T.A.C.)", size=14)
+    _p(d, "INSTALAȚIE GAZE NATURALE — Legea 50/1991 + Ord. ANRE 89/2018", bold=True)
+    d.add_paragraph()
+    _p(d, "I. FOAIE DE CAPĂT", bold=True)
+    _p(d, "Denumire investiție: {{denumire_investitie}}")
+    _p(d, "Amplasament: {{adresa_lucrare}}, {{localitate}}, jud. {{judet}}")
+    _p(d, "CF / Nr. Cadastral: {{numar_cadastral}} / {{numar_carte_funciara}}")
+    _p(d, "Beneficiar: {{beneficiar}}")
+    _p(d, "CUI/CNP: {{beneficiar_cui}}")
+    _p(d, "Proiectant general: {{proiectant_general}}")
+    _p(d, "Proiectant specialitate gaze: {{proiectant}} — Atestat ANRE {{atestat_proiectant}}")
+    _p(d, "Faza: D.T.A.C. — Documentație Tehnică pentru Autorizație de Construire")
+    _p(d, "Nr. proiect: {{numar_proiect}} / {{data_document}}")
+    d.add_paragraph()
+    _p(d, "II. BORDEROU PIESE SCRISE", bold=True)
+    _p(d, "1. Foaie de capăt")
+    _p(d, "2. Borderou piese scrise și desenate")
+    _p(d, "3. Memoriu tehnic general")
+    _p(d, "4. Memoriu tehnic specialitate gaze naturale")
+    _p(d, "5. Breviar de calcul (debite, presiuni, dimensionare)")
+    _p(d, "6. Caiet de sarcini și liste cu cantități")
+    _p(d, "7. Devize generale și pe categorii de lucrări")
+    _p(d, "8. Program control calitate execuție (PCCVI)")
+    _p(d, "9. Referat verificare tehnică Vg (verificator atestat ANRE)")
+    d.add_paragraph()
+    _p(d, "III. BORDEROU PIESE DESENATE", bold=True)
+    _p(d, "P1. Plan de încadrare în zonă (sc 1:5000 / 1:10000)")
+    _p(d, "P2. Plan de situație (sc 1:500 / 1:1000)")
+    _p(d, "P3. Plan parter / nivele cu traseu instalație gaze (sc 1:50 / 1:100)")
+    _p(d, "P4. Schemă izometrică instalație (sc 1:50)")
+    _p(d, "P5. Detalii branșament — secțiune transversală")
+    _p(d, "P6. Detalii post reglare / contor")
+    _p(d, "P7. Plan amplasament aparate consumatoare cu degajări de siguranță")
+    d.add_paragraph()
+    _p(d, "IV. MEMORIU TEHNIC GENERAL DTAC", bold=True)
+    _p(d, "4.1 Descrierea generală a lucrării")
+    _p(d, "Prezenta documentație are ca obiect lucrarea de {{tip_lucrare}} la imobilul situat la adresa {{adresa_lucrare}}, {{localitate}}, județul {{judet}}, în vederea racordării la rețeaua publică de distribuție gaze naturale a OSD-ului {{osd}}.")
+    _p(d, "4.2 Încadrare urbanistică")
+    _p(d, "Conform Certificatului de Urbanism nr. {{cu_numar}} / {{cu_data}} emis de Primăria {{primaria}}, zona de construcție permite execuția lucrărilor de instalații gaze naturale.")
+    _p(d, "4.3 Soluția tehnică adoptată")
+    _p(d, "• Debit total instalat: {{debit_instalat}} mc/h")
+    _p(d, "• Putere termică totală: {{putere_instalata_kw}} kW")
+    _p(d, "• Presiune regim: {{presiune_regim}}")
+    _p(d, "• Tip rețea racord: {{punct_racordare}}")
+    _p(d, "• Material conductă: {{material_conducta}}, dimensiune {{diametru_conducta}}")
+    _p(d, "• Lungime branșament: {{lungime_bransament}} m")
+    _p(d, "• Post reglare/măsurare: {{post_reglare}}")
+    _p(d, "• Sistem măsurare: {{contor_orientativ}}")
+    d.add_paragraph()
+    _p(d, "V. RESPECTAREA NORMELOR DE SIGURANȚĂ", bold=True)
+    _p(d, "Documentația respectă Ord. ANRE 89/2018 (Normă tehnică instalații gaze), Legea 123/2012, NTPEE-2018, Lg 50/1991, P118-99 (protecție incendiu) și HG 925/1995 (verificare proiecte).")
+    d.add_paragraph()
+    _p(d, "Întocmit: {{proiectant}}                     Verificat tehnic: {{verificator_vgd}} ({{atestat_vgd}})")
+    _p(d, "Data: {{data_document}}                     Ștampilă proiectant: ________________________")
+    out = io.BytesIO()
+    d.save(out)
+    return out.getvalue()
+
+
+def _build_dtoe_gaz() -> bytes:
+    """DTOE — Documentație Tehnică de Organizare a Execuției lucrărilor."""
+    d = Document()
+    _h(d, "DOCUMENTAȚIE TEHNICĂ DE ORGANIZARE A EXECUȚIEI (D.T.O.E.)", size=14)
+    _p(d, "Lucrări de instalații gaze naturale — execuție pe șantier", bold=True)
+    d.add_paragraph()
+    _p(d, "1. DATE GENERALE", bold=True)
+    _p(d, "Beneficiar: {{beneficiar}}")
+    _p(d, "Adresa: {{adresa_lucrare}}, {{localitate}}, jud. {{judet}}")
+    _p(d, "Executant ANRE: {{executant}} — Atestat {{atestat_executant}}")
+    _p(d, "RTE atestat ANRE: {{responsabil_rte}} ({{autorizatie_rte}})")
+    _p(d, "Contract execuție: nr. {{numar_contract}} / {{data_contract}}")
+    d.add_paragraph()
+    _p(d, "2. ORGANIZAREA ȘANTIERULUI", bold=True)
+    _p(d, "2.1 Suprafață ocupată temporar pentru organizare: {{suprafata_organizare}} mp")
+    _p(d, "2.2 Acces utilaje și aprovizionare materiale: {{acces_santier}}")
+    _p(d, "2.3 Surse de utilități pentru organizare: {{surse_utilitati}}")
+    _p(d, "2.4 Spații de depozitare materiale: {{depozitare_materiale}}")
+    _p(d, "2.5 Vestiare și grupuri sanitare: {{vestiare}}")
+    d.add_paragraph()
+    _p(d, "3. PROGRAM DE EXECUȚIE PE FAZE", bold=True)
+    _p(d, "Faza 1 — Trasare și marcaj traseu conductă")
+    _p(d, "Faza 2 — Săpături în profil normat (adâncime min. 0.9 m conform NTPEE-2018)")
+    _p(d, "Faza 3 — Montaj conductă PE/OL și sudare/electrofuziune cu probe sudori certificați")
+    _p(d, "Faza 4 — Probe de presiune (rezistență 1.5 × Pmax, etanșeitate 6h conform NTPEE-2018)")
+    _p(d, "Faza 5 — Montaj robineți, post reglare, contor")
+    _p(d, "Faza 6 — Probă tehnologică în prezența reprezentantului OSD")
+    _p(d, "Faza 7 — Acoperire tranșee cu nisip + bandă avertizare + recompactare strat")
+    _p(d, "Faza 8 — Refacere stare inițială sistematizare verticală")
+    _p(d, "Durată totală estimată: {{durata_executie}} zile lucrătoare")
+    d.add_paragraph()
+    _p(d, "4. MĂSURI DE SECURITATE ȘI SĂNĂTATE", bold=True)
+    _p(d, "Conform Lg 319/2006 SSM, HG 300/2006 șantiere, HG 1051/2006 echipamente, NTPEE-2018.")
+    _p(d, "Echipa execuție va fi instruită zilnic. Operațiunile cu foc deschis necesită permis emis de RTE.")
+    d.add_paragraph()
+    _p(d, "5. MĂSURI DE PROTECȚIE A MEDIULUI", bold=True)
+    _p(d, "Materialul rezultat din săpături — depozitat temporar și transportat la depozit autorizat. Refacerea stării inițiale a terenului este obligatorie.")
+    d.add_paragraph()
+    _p(d, "Întocmit: {{proiectant}}                       RTE: {{responsabil_rte}}")
+    _p(d, "Data: {{data_document}}                       Semnătură & ștampilă: __________________")
+    out = io.BytesIO()
+    d.save(out)
+    return out.getvalue()
+
+
+def _build_dispozitie_santier() -> bytes:
+    """Dispoziție de Șantier — modificări față de proiectul aprobat în timpul execuției."""
+    d = Document()
+    _h(d, "DISPOZIȚIE DE ȘANTIER nr. {{ds_numar}} / {{data_document}}", size=14)
+    _p(d, "Lucrare instalație gaze naturale", bold=True)
+    d.add_paragraph()
+    _p(d, "Lucrare: {{tip_lucrare}}")
+    _p(d, "Beneficiar: {{beneficiar}}")
+    _p(d, "Amplasament: {{adresa_lucrare}}, {{localitate}}, jud. {{judet}}")
+    _p(d, "Contract: {{numar_contract}} / {{data_contract}}")
+    _p(d, "Documentație inițială: nr. proiect {{numar_proiect}}, faza {{faza_proiect}}")
+    d.add_paragraph()
+    _p(d, "1. SITUAȚIA EXISTENTĂ ÎN PROIECT", bold=True)
+    _p(d, "{{situatie_proiect_initial}}")
+    d.add_paragraph()
+    _p(d, "2. SITUAȚIA CONSTATATĂ PE TEREN", bold=True)
+    _p(d, "{{situatie_constatata_teren}}")
+    d.add_paragraph()
+    _p(d, "3. MODIFICAREA PROPUSĂ", bold=True)
+    _p(d, "{{modificare_propusa}}")
+    d.add_paragraph()
+    _p(d, "4. JUSTIFICAREA MODIFICĂRII", bold=True)
+    _p(d, "{{justificare_modificare}}")
+    d.add_paragraph()
+    _p(d, "5. CONSECINȚE TEHNICE", bold=True)
+    _p(d, "• Asupra siguranței: {{impact_siguranta}}")
+    _p(d, "• Asupra costului lucrării: {{impact_cost}} RON (± față de devizul inițial)")
+    _p(d, "• Asupra termenului: {{impact_termen}}")
+    _p(d, "• Asupra autorizației de construire: {{impact_autorizatie}}")
+    d.add_paragraph()
+    _p(d, "6. SEMNĂTURI", bold=True)
+    _p(d, "Proiectant: {{proiectant}}                         Semnătură: ____________________")
+    _p(d, "Verificator tehnic Vg: {{verificator_vgd}}        Semnătură: ____________________")
+    _p(d, "RTE: {{responsabil_rte}}                          Semnătură: ____________________")
+    _p(d, "Beneficiar: {{beneficiar}}                        Semnătură: ____________________")
+    _p(d, "Reprezentant OSD: ____________________             Semnătură: ____________________")
+    d.add_paragraph()
+    _p(d, "ATENȚIE: Această dispoziție de șantier nu se poate aplica fără semnătura proiectantului și a verificatorului Vg.", bold=True)
+    out = io.BytesIO()
+    d.save(out)
+    return out.getvalue()
+
+
+def _build_carte_tehnica() -> bytes:
+    """Cartea Tehnică a Construcției — Lg 10/1995 + HG 273/1994."""
+    d = Document()
+    _h(d, "CARTEA TEHNICĂ A CONSTRUCȚIEI", size=14)
+    _p(d, "Instalație gaze naturale — Lg 10/1995 + HG 273/1994", bold=True)
+    d.add_paragraph()
+    _p(d, "Beneficiar: {{beneficiar}}")
+    _p(d, "Adresa lucrării: {{adresa_lucrare}}, {{localitate}}, jud. {{judet}}")
+    _p(d, "Nr. proiect: {{numar_proiect}} / {{data_document}}")
+    d.add_paragraph()
+    _p(d, "CAPITOL A — DOCUMENTAȚIA PRIVIND PROIECTAREA", bold=True)
+    _p(d, "A.1 Certificat urbanism nr. {{cu_numar}} / {{cu_data}}")
+    _p(d, "A.2 Autorizație construire nr. {{ac_numar}} / {{ac_data}}")
+    _p(d, "A.3 Proiect tehnic (PT) + Detalii execuție (DE)")
+    _p(d, "A.4 Referat verificare tehnică Vg ({{verificator_vgd}} — {{atestat_vgd}})")
+    _p(d, "A.5 Avize ANRE / OSD / Primărie / ROMGAZ / DELGAZ / ENEL (după caz)")
+    _p(d, "A.6 Memoriu tehnic specialitate gaze")
+    _p(d, "A.7 Caiet de sarcini și liste cantități")
+    _p(d, "A.8 Devize generale")
+    d.add_paragraph()
+    _p(d, "CAPITOL B — DOCUMENTAȚIA PRIVIND EXECUȚIA", bold=True)
+    _p(d, "B.1 Autorizație ANRE executant {{executant}} ({{atestat_executant}})")
+    _p(d, "B.2 Decizia numire RTE {{responsabil_rte}} ({{autorizatie_rte}})")
+    _p(d, "B.3 Procese verbale faze determinante:")
+    _p(d, "    • PVRFD-01 Trasare traseu")
+    _p(d, "    • PVRFD-02 Săpături + adâncime")
+    _p(d, "    • PVRFD-03 Sudare/electrofuziune conductă PE/OL")
+    _p(d, "    • PVRFD-04 Probe presiune (rezistență + etanșeitate)")
+    _p(d, "    • PVRFD-05 Acoperire tranșee + bandă avertizare")
+    _p(d, "B.4 Certificate calitate materiale și echipamente")
+    _p(d, "B.5 Buletine analiză sudori atestați ANRE")
+    _p(d, "B.6 Programul de control al calității execuției (PCCVI)")
+    _p(d, "B.7 Jurnal de șantier")
+    _p(d, "B.8 Dispoziții de șantier emise (lista anexată)")
+    d.add_paragraph()
+    _p(d, "CAPITOL C — DOCUMENTAȚIA PRIVIND RECEPȚIA", bold=True)
+    _p(d, "C.1 PV recepție la terminarea lucrărilor nr. {{pvrt_numar}} / {{pvrt_data}}")
+    _p(d, "C.2 PV punere în funcțiune emis de OSD {{osd}}")
+    _p(d, "C.3 PV recepție finală nr. {{pvrf_numar}} / {{pvrf_data}}")
+    _p(d, "C.4 Garanții și certificate de conformitate finale")
+    d.add_paragraph()
+    _p(d, "CAPITOL D — DOCUMENTAȚIA PRIVIND EXPLOATAREA, ÎNTREȚINEREA ȘI REVIZIILE", bold=True)
+    _p(d, "D.1 Instrucțiuni de exploatare a instalației")
+    _p(d, "D.2 Programul de revizii tehnice periodice (RTP)")
+    _p(d, "D.3 Programul de verificare tehnică periodică (VTP)")
+    _p(d, "D.4 Înregistrări revizii și verificări periodice")
+    _p(d, "D.5 Evidența incidentelor și reparațiilor")
+    d.add_paragraph()
+    _p(d, "Cartea tehnică a fost completată de:", bold=True)
+    _p(d, "Proiectant: {{proiectant}}")
+    _p(d, "Executant: {{executant}}")
+    _p(d, "RTE: {{responsabil_rte}}")
+    _p(d, "Predată beneficiarului la data: {{data_predare_ct}}")
+    _p(d, "Semnătură primire beneficiar: {{beneficiar}} ___________________")
+    out = io.BytesIO()
+    d.save(out)
+    return out.getvalue()
+
+
+def _build_pv_receptie_terminare() -> bytes:
+    """Proces verbal de recepție la terminarea lucrărilor (PVRT) — HG 343/2017."""
+    d = Document()
+    _h(d, "PROCES VERBAL DE RECEPȚIE LA TERMINAREA LUCRĂRILOR", size=14)
+    _p(d, "nr. {{pvrt_numar}} din data {{pvrt_data}}", bold=True)
+    d.add_paragraph()
+    _p(d, "Conform HG 343/2017 — Regulamentul de recepție a lucrărilor de construcții și instalații aferente acestora.")
+    d.add_paragraph()
+    _p(d, "1. IDENTIFICAREA OBIECTIVULUI", bold=True)
+    _p(d, "Denumire obiectiv: {{denumire_investitie}}")
+    _p(d, "Adresa: {{adresa_lucrare}}, {{localitate}}, jud. {{judet}}")
+    _p(d, "Autorizație construire: nr. {{ac_numar}} / {{ac_data}}")
+    _p(d, "Beneficiar (investitor): {{beneficiar}}")
+    _p(d, "Proiectant: {{proiectant}} ({{atestat_proiectant}})")
+    _p(d, "Executant: {{executant}} ({{atestat_executant}})")
+    _p(d, "RTE: {{responsabil_rte}} ({{autorizatie_rte}})")
+    d.add_paragraph()
+    _p(d, "2. COMISIA DE RECEPȚIE", bold=True)
+    _p(d, "Președinte: {{presedinte_receptie}}")
+    _p(d, "Membri: {{membri_receptie}}")
+    _p(d, "Specialist domeniu instalații gaze: {{specialist_gaze}}")
+    d.add_paragraph()
+    _p(d, "3. DOCUMENTE EXAMINATE", bold=True)
+    _p(d, "• Autorizația de construire și actele atașate")
+    _p(d, "• Proiectul tehnic verificat de Vg")
+    _p(d, "• Cartea tehnică a construcției (capitolele A + B)")
+    _p(d, "• Buletinele de încercări (probe presiune, sudură)")
+    _p(d, "• Certificatele de conformitate ale materialelor")
+    _p(d, "• PV faze determinante semnate")
+    d.add_paragraph()
+    _p(d, "4. CONSTATĂRI", bold=True)
+    _p(d, "{{constatari_receptie}}")
+    d.add_paragraph()
+    _p(d, "5. CONCLUZIA COMISIEI", bold=True)
+    _p(d, "Comisia hotărăște: {{decizia_receptie}}")
+    _p(d, "(ADMITE / RESPINGE / ADMITE CU OBSERVAȚII — se completează una din variante)")
+    d.add_paragraph()
+    _p(d, "6. SEMNĂTURI COMISIE", bold=True)
+    _p(d, "Președinte: ____________________      Membri: ____________________ ____________________")
+    _p(d, "Investitor: ____________________      Executant: ____________________")
+    _p(d, "Proiectant: ____________________      RTE: ____________________      Specialist gaze: ____________________")
+    out = io.BytesIO()
+    d.save(out)
+    return out.getvalue()
+
+
+def _build_pccvi_gaz() -> bytes:
+    """Program de Control al Calității Execuției (PCCVI) — gaze naturale."""
+    d = Document()
+    _h(d, "PROGRAM DE CONTROL AL CALITĂȚII EXECUȚIEI (PCCVI)", size=14)
+    _p(d, "Lucrări instalații gaze naturale", bold=True)
+    d.add_paragraph()
+    _p(d, "Lucrare: {{denumire_investitie}}")
+    _p(d, "Beneficiar: {{beneficiar}}")
+    _p(d, "Executant: {{executant}}")
+    _p(d, "RTE: {{responsabil_rte}}")
+    _p(d, "Verificator atestat Vg: {{verificator_vgd}}")
+    d.add_paragraph()
+    _p(d, "TABEL FAZE DETERMINANTE", bold=True)
+    _p(d, "Nr. │ Faza │ Document de control │ Participanți │ Document emis")
+    _p(d, "1 │ Trasare traseu │ Plan trasare + PV │ Beneficiar + Proiectant + RTE │ PVRFD-01")
+    _p(d, "2 │ Săpături + adâncime conducta │ Fișă măsurători │ RTE + Inspector ISC │ PVRFD-02")
+    _p(d, "3 │ Sudare/electrofuziune │ Buletin sudori + radiografii │ RTE + Sudor atestat ANRE │ PVRFD-03")
+    _p(d, "4 │ Proba presiune rezistență │ Diagrama presiune 6h │ RTE + Reprezentant OSD │ PVRFD-04a")
+    _p(d, "5 │ Proba etanșeitate │ Diagrama 24h │ RTE + Reprezentant OSD │ PVRFD-04b")
+    _p(d, "6 │ Acoperire tranșee │ PV de control │ RTE + Beneficiar │ PVRFD-05")
+    _p(d, "7 │ Probă tehnologică │ Buletin probă cu gaz │ RTE + OSD + ISCIR (după caz) │ PV PIF")
+    d.add_paragraph()
+    _p(d, "OBSERVAȚII:", bold=True)
+    _p(d, "• Fiecare fază determinantă necesită oprirea lucrărilor până la semnarea PV.")
+    _p(d, "• Verificatorul atestat ANRE Vg participă obligatoriu la fazele 3, 4 și 5.")
+    _p(d, "• Programul este aprobat de proiectant și acceptat de RTE și beneficiar.")
+    d.add_paragraph()
+    _p(d, "Întocmit proiectant: {{proiectant}}            Acceptat RTE: {{responsabil_rte}}")
+    _p(d, "Avizat verificator Vg: {{verificator_vgd}}    Aprobat beneficiar: {{beneficiar}}")
+    _p(d, "Data: {{data_document}}")
+    out = io.BytesIO()
+    d.save(out)
+    return out.getvalue()
+
+
+def _build_caiet_sarcini_gaz() -> bytes:
+    """Caiet de Sarcini — instalație gaze naturale."""
+    d = Document()
+    _h(d, "CAIET DE SARCINI — INSTALAȚIE GAZE NATURALE", size=14)
+    d.add_paragraph()
+    _p(d, "1. OBIECTUL CAIETULUI DE SARCINI", bold=True)
+    _p(d, "Prezentul caiet de sarcini se aplică lucrării: {{tip_lucrare}} pentru beneficiarul {{beneficiar}}, situată la adresa {{adresa_lucrare}}, {{localitate}}, jud. {{judet}}.")
+    d.add_paragraph()
+    _p(d, "2. STANDARDE ȘI NORMATIVE APLICABILE", bold=True)
+    _p(d, "• Lg 123/2012 — Legea energiei electrice și a gazelor naturale")
+    _p(d, "• Ord. ANRE 89/2018 — Norma Tehnică Instalații Gaze")
+    _p(d, "• NTPEE-2018 — Normativ tehnic proiectare execuție instalații gaze")
+    _p(d, "• SR EN 12007 / SR EN 1555 / SR EN 13480 (conducte, fitting-uri)")
+    _p(d, "• Lg 10/1995 — Calitatea în construcții")
+    _p(d, "• P 118-99 — Norme protecție la foc")
+    d.add_paragraph()
+    _p(d, "3. MATERIALE ȘI ECHIPAMENTE", bold=True)
+    _p(d, "• Conductă: {{material_conducta}}, dimensiune {{diametru_conducta}}, presiune nominală {{presiune_regim}}")
+    _p(d, "• Robineți: cu sferă cu pasaj integral, certificați PE/OL")
+    _p(d, "• Post reglare: {{post_reglare}}, cu valvă de siguranță SAV + SBV")
+    _p(d, "• Contor: {{contor_orientativ}}, clasă metrologică G")
+    _p(d, "• Toate materialele vor avea certificat de conformitate CE și declarație producător.")
+    d.add_paragraph()
+    _p(d, "4. CONDIȚII DE EXECUȚIE", bold=True)
+    _p(d, "• Adâncime minimă montaj conductă: 0.9 m sub teren natural")
+    _p(d, "• Bandă avertizare galbenă cu inscripție 'ATENȚIE GAZ' la 30 cm deasupra conductei")
+    _p(d, "• Distanțe normate față de alte rețele: 0.4 m apă, 0.5 m electric, 1 m canalizare")
+    _p(d, "• Sudarea va fi efectuată numai de sudori atestați ANRE cu autorizație în vigoare")
+    d.add_paragraph()
+    _p(d, "5. RECEPȚIA LUCRĂRILOR", bold=True)
+    _p(d, "Recepția se face pe faze determinante conform PCCVI și se finalizează cu PV recepție la terminarea lucrărilor.")
+    d.add_paragraph()
+    _p(d, "Întocmit: {{proiectant}}                  Data: {{data_document}}")
+    out = io.BytesIO()
+    d.save(out)
+    return out.getvalue()
+
+
 SYSTEM_TEMPLATES = [
     {
         "key": "sys_cerere_racordare_gaz",
@@ -408,6 +738,58 @@ SYSTEM_TEMPLATES = [
         "industry": "gas_engineering",
         "subdomain": "bransamente_gaz",
         "builder": _build_certificare_rte,
+    },
+    # ============================================================
+    # V5.7 — Faze complete documentare gaze naturale (DTAC/DTOE/CT/DS/PVRT/PCCVI/CS)
+    # ============================================================
+    {
+        "key": "sys_dtac_gaz",
+        "name": "D.T.A.C. — Documentație Autorizație Construire (sistem)",
+        "industry": "gas_engineering",
+        "subdomain": "autorizatii_construire",
+        "builder": _build_dtac_gaz,
+    },
+    {
+        "key": "sys_dtoe_gaz",
+        "name": "D.T.O.E. — Organizare Execuție (sistem)",
+        "industry": "gas_engineering",
+        "subdomain": "executie_santier",
+        "builder": _build_dtoe_gaz,
+    },
+    {
+        "key": "sys_dispozitie_santier_gaz",
+        "name": "Dispoziție de Șantier (sistem)",
+        "industry": "gas_engineering",
+        "subdomain": "executie_santier",
+        "builder": _build_dispozitie_santier,
+    },
+    {
+        "key": "sys_carte_tehnica_gaz",
+        "name": "Carte Tehnică a Construcției (sistem)",
+        "industry": "gas_engineering",
+        "subdomain": "receptie_pif",
+        "builder": _build_carte_tehnica,
+    },
+    {
+        "key": "sys_pvrt_gaz",
+        "name": "PV Recepție Terminare Lucrări (sistem)",
+        "industry": "gas_engineering",
+        "subdomain": "receptie_pif",
+        "builder": _build_pv_receptie_terminare,
+    },
+    {
+        "key": "sys_pccvi_gaz",
+        "name": "PCCVI — Program Control Calitate Execuție (sistem)",
+        "industry": "gas_engineering",
+        "subdomain": "executie_santier",
+        "builder": _build_pccvi_gaz,
+    },
+    {
+        "key": "sys_caiet_sarcini_gaz",
+        "name": "Caiet de Sarcini (sistem)",
+        "industry": "gas_engineering",
+        "subdomain": "instalatii_utilizare",
+        "builder": _build_caiet_sarcini_gaz,
     },
     {
         "key": "sys_cerere_racordare_fv",

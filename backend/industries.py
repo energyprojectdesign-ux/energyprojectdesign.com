@@ -24,6 +24,12 @@ INDUSTRIES: Dict[str, Dict] = {
              "description": "Studii tehnico-economice pentru lucrări de gaze."},
             {"id": "inlocuiri_modernizari", "name": "Înlocuiri, reabilitări, modernizări", "active": True,
              "description": "Lucrări de modernizare rețele și instalații existente."},
+            {"id": "autorizatii_construire", "name": "Autorizații construire (DTAC + Avize)", "active": True,
+             "description": "DTAC, certificate de urbanism, avize ANRE, Primărie, ROMGAZ/DELGAZ."},
+            {"id": "executie_santier", "name": "Execuție pe șantier (DTOE + DS + PCCVI)", "active": True,
+             "description": "Organizare execuție, dispoziții de șantier, program control calitate."},
+            {"id": "receptie_pif", "name": "Recepție & Punere în funcțiune (PVRT + Carte Tehnică)", "active": True,
+             "description": "Procese verbale recepție, cartea tehnică a construcției, predare beneficiar."},
         ],
     },
     "electrical_engineering": {
